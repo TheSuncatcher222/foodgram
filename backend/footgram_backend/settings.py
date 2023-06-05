@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'footgram_app.apps.FootgramAppConfig',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
