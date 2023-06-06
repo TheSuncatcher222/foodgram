@@ -1,5 +1,5 @@
-Django==3.2
-djangorestframework==3.12.4
-djangorestframework-simplejwt==5.2.2
+Django==4.1.9
+djangorestframework==3.14.0
+djoser==2.2.0
 flake8==6.0.0
 flake8-isort==6.0.0
