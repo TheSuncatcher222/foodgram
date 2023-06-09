@@ -4,3 +4,4 @@ djoser==2.2.0
 flake8==6.0.0
 flake8-isort==6.0.0
 Pillow==9.5.0
+pytest==7.3.1
