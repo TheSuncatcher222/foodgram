@@ -3,3 +3,4 @@ djangorestframework==3.14.0
 djoser==2.2.0
 flake8==6.0.0
 flake8-isort==6.0.0
+Pillow==9.5.0
