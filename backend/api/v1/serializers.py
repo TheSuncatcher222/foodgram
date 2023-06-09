@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from djoser.serializers import UserSerializer
 from rest_framework.serializers import SerializerMethodField
 
-from api.models import Subscriptions
+from footgram_app.models import Subscriptions
 
 
 class CustomUserSerializer(UserSerializer):
