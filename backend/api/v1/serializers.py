@@ -6,8 +6,8 @@ from footgram_app.models import Subscriptions
 
 
 class CustomUserSerializer(UserSerializer):
-    """Переопределяет UserSerializer библиотеки Djoser.
-    Добавляет поле 'is_subscribed' в конец списка полей."""
+    """Переопределяет UserSerializer библиотеки Djoser:
+        - добавляет поле 'is_subscribed' в конец списка полей."""
     is_subscribed = SerializerMethodField()
 
     class Meta:
@@ -23,7 +23,7 @@ class CustomUserSerializer(UserSerializer):
     def get_is_subscribed(self, obj):
         """Показывает статус подписки пользователя в поле 'is_subscribed'.
         Возвращает True, если пользователь имеет подписку, False - если не
-        имеет или пользователь не авторизован."""
+        имеет, или пользователь не авторизован."""
         if self.context['request'].user.is_anonymous:
             return False
         else:
