@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from djoser.serializers import UserSerializer
 from rest_framework.serializers import (
-    EmailField, SerializerMethodField, ValidationError)
+    EmailField, CharField, SerializerMethodField, ValidationError)
 
 from footgram_app.models import Subscriptions
 
@@ -16,6 +16,9 @@ class CustomUserSerializer(UserSerializer):
         - производит валидацию на уникальность поля 'email'."""
     email = EmailField()
     is_subscribed = SerializerMethodField()
+    password = CharField(
+        required=True,
+        write_only=True)
 
     class Meta:
         model = User
@@ -25,6 +28,7 @@ class CustomUserSerializer(UserSerializer):
             'username',
             'first_name',
             'last_name',
+            'password',
             'is_subscribed')
         extra_kwargs = {
             'email': {'required': True},
