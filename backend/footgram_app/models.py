@@ -2,14 +2,14 @@
 Создает модели проекта "Footgram".
 
 Классы-модели:
-    Ingredients
-    Recipes
-    RecipesFavoritesUsers
-    RecipesIngredients
-    RecipesTags
-    ShoppingCarts
-    Subscriptions
-    Tags
+    - Ingredients
+    - Recipes
+    - RecipesFavoritesUsers
+    - RecipesIngredients
+    - RecipesTags
+    - ShoppingCarts
+    - Subscriptions
+    - Tags
 
 Создает список используемых в проекте единиц измерения: "UNITS".
 """
