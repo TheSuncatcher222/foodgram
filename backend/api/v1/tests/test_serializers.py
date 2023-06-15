@@ -11,6 +11,7 @@ def test_custom_user_serializer():
         'username': CharField,
         'first_name': CharField,
         'last_name': CharField,
+        'password': CharField,
         'is_subscribed': SerializerMethodField}
     serializer = CustomUserSerializer()
     assert list(serializer.fields.keys()) == list(expected_fields.keys())
