@@ -5,18 +5,21 @@ import pytest
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.v1.serializers import (
     USER_EMAIL_MAX_LEN, USER_FIRST_NAME_MAX_LEN, USER_PASSWORD_MAX_LEN,
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
 
 USERS_URL: str = '/api/v1/users/'
+USERS_ME_URL: str = '/api/v1/users/me/'
 
 TEST_USER: User = lambda i: User.objects.create(
     email=f'test_user_{i}@email.com',
     username=f'test_user_{i}',
     first_name=f'test_user_{i}_first_name',
-    last_name=f'test_user_{i}_last_name')
+    last_name=f'test_user_{i}_last_name',
+    password=f'test_password_{i}')
 TEST_USERS_COUNT: int = 3
 
 
@@ -108,7 +111,7 @@ class TestCustomUserViewSet():
         """Возвращает объект анонимного клиента."""
         return APIClient()
 
-    def users_get(self, client) -> None:
+    def users_get(self, client: APIClient, expected_data: dict) -> None:
         """Совершает GET-запрос к списку пользователей по эндпоинту
         "/api/v1/users/" от лица переданного клиента.
         Проверяет ответ на соответствие ожидаемым данным
@@ -117,25 +120,6 @@ class TestCustomUserViewSet():
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert len(data) == TEST_USERS_COUNT
-        expected_data = [
-            {'email': 'test_user_1@email.com',
-             'id': 1,
-             'username': 'test_user_1',
-             'first_name': 'test_user_1_first_name',
-             'last_name': 'test_user_1_last_name',
-             'is_subscribed': False},
-            {'email': 'test_user_2@email.com',
-             'id': 2,
-             'username': 'test_user_2',
-             'first_name': 'test_user_2_first_name',
-             'last_name': 'test_user_2_last_name',
-             'is_subscribed': False},
-            {'email': 'test_user_3@email.com',
-             'id': 3,
-             'username': 'test_user_3',
-             'first_name': 'test_user_3_first_name',
-             'last_name': 'test_user_3_last_name',
-             'is_subscribed': False}]
         assert data == expected_data
         return
 
@@ -172,7 +156,26 @@ class TestCustomUserViewSet():
         "/api/v1/users/" для анонимного и авторизированного клиента.
         Используется фикстура "create_users" для наполнения тестовой
         БД пользователями."""
-        self.users_get(client=client_func(self))
+        expected_data: dict[str, any] = [
+            {'email': 'test_user_1@email.com',
+             'id': 1,
+             'username': 'test_user_1',
+             'first_name': 'test_user_1_first_name',
+             'last_name': 'test_user_1_last_name',
+             'is_subscribed': False},
+            {'email': 'test_user_2@email.com',
+             'id': 2,
+             'username': 'test_user_2',
+             'first_name': 'test_user_2_first_name',
+             'last_name': 'test_user_2_last_name',
+             'is_subscribed': False},
+            {'email': 'test_user_3@email.com',
+             'id': 3,
+             'username': 'test_user_3',
+             'first_name': 'test_user_3_first_name',
+             'last_name': 'test_user_3_last_name',
+             'is_subscribed': False}]
+        self.users_get(client=client_func(self), expected_data=expected_data)
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
@@ -227,3 +230,40 @@ class TestCustomUserViewSet():
             USERS_URL, json.dumps({}), content_type='application/json')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
+
+    @pytest.mark.parametrize('token, expected_data',
+        [('', {'detail': 'Учетные данные не были предоставлены.'}),
+         (' ', {'detail':
+                    'Недопустимый заголовок токена. '
+                    'Не предоставлены учетные данные.'}),
+         ('100%_non_valid_token', {'detail': 'Недопустимый токен.'})])
+    def test_users_me_anon(
+            self, token: str, expected_data: dict, create_users) -> None:
+        """Тест GET-запроса на личную страницу пользователя по эндпоинту
+        "/api/v1/users/me/" для анонимного клиента или клиента с поврежденным
+        токеном авторизации."""
+        client: APIClient = self.anon_client()
+        if token:
+            client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        response = client.get(USERS_ME_URL)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        data: dict = json.loads(response.content)
+        assert data == expected_data
+        return
+
+    def test_users_me_auth(self, create_users) -> None:
+        """Тест GET-запроса на личную страницу пользователя по эндпоинту
+        "/api/v1/users/me/" для авторизированного клиента."""
+        test_user: User = User.objects.get(id=1)
+        client = APIClient()
+        client.force_authenticate(user=test_user)
+        response = client.get(USERS_ME_URL)
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        assert data == {
+            'email': 'test_user_1@email.com',
+            'id': 1,
+            'username': 'test_user_1',
+            'first_name': 'test_user_1_first_name',
+            'last_name': 'test_user_1_last_name',
+            'is_subscribed': False}
