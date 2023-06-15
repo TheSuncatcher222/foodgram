@@ -1,15 +1,14 @@
-
 import json
 
 import pytest
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.v1.serializers import (
     USER_EMAIL_MAX_LEN, USER_FIRST_NAME_MAX_LEN, USER_PASSWORD_MAX_LEN,
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
+from footgram_app.models import Subscriptions
 
 USERS_URL: str = '/api/v1/users/'
 USERS_ME_URL: str = '/api/v1/users/me/'
@@ -231,11 +230,56 @@ class TestCustomUserViewSet():
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
-    @pytest.mark.parametrize('token, expected_data',
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_users_pk(self, client_func: any, create_users) -> None:
+        """Тест GET-запроса на личную страницу пользователя по эндпоинту
+        "/api/v1/users/{pk}/" для анонимного и авторизированного клиента.
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями."""
+        client = client_func(self)
+        response = client.get(f'{USERS_URL}1/')
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        assert data == {
+            'email': 'test_user_1@email.com',
+            'id': 1,
+            'username': 'test_user_1',
+            'first_name': 'test_user_1_first_name',
+            'last_name': 'test_user_1_last_name',
+            'is_subscribed': False}
+        return
+
+    def test_users_pk_subscription(self, create_users) -> None:
+        """Тест GET-запроса на личную страницу пользователя по эндпоинту
+        "/api/v1/users/{pk}/" для авторизированного клиента.
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями.
+        Моделируется подписка клиента на другого пользователя."""
+        subscriber: User = User.objects.get(id=1)
+        subscription_to: User = User.objects.get(id=2)
+        Subscriptions.objects.create(
+            subscriber=subscriber,
+            subscription_to=subscription_to)
+        client = self.auth_client()
+        client.force_authenticate(user=subscriber)
+        response = client.get(f'{USERS_URL}2/')
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        assert data == {
+            'email': 'test_user_2@email.com',
+            'id': 2,
+            'username': 'test_user_2',
+            'first_name': 'test_user_2_first_name',
+            'last_name': 'test_user_2_last_name',
+            'is_subscribed': True}
+        return
+
+    @pytest.mark.parametrize(
+        'token, expected_data',
         [('', {'detail': 'Учетные данные не были предоставлены.'}),
          (' ', {'detail':
-                    'Недопустимый заголовок токена. '
-                    'Не предоставлены учетные данные.'}),
+                'Недопустимый заголовок токена. '
+                'Не предоставлены учетные данные.'}),
          ('100%_non_valid_token', {'detail': 'Недопустимый токен.'})])
     def test_users_me_anon(
             self, token: str, expected_data: dict, create_users) -> None:
