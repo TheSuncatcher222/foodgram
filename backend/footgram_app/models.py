@@ -22,6 +22,12 @@ from django.db.models import (
     SlugField, TextField, UniqueConstraint,
     Model)
 
+INGREDIENTS_NAME_MAX_LENGTH: int = 48
+INGREDIENTS_UNIT_MAX_LENGTH: int = 48
+TAGS_COLOR_MAX_LEN: int = 7
+TAGS_NAME_MAX_LEN: int = 32
+RECIPES_NAME_MAX_LEN: int = 128
+
 UNITS = [
     ('банка', 'банка'),
     ('батон', 'батон'),
@@ -75,12 +81,12 @@ class Ingredients(Model):
     """
     name = CharField(
         db_index=True,
-        max_length=48,
+        max_length=INGREDIENTS_NAME_MAX_LENGTH,
         verbose_name='Название',
         unique=True)
     measurement_unit = CharField(
         choices=UNITS,
-        max_length=48,
+        max_length=INGREDIENTS_UNIT_MAX_LENGTH,
         verbose_name='единица измерения')
 
     class Meta:
@@ -112,17 +118,17 @@ class Tags(Model):
     Индексируемые атрибуты:
         name
     """
-    name = CharField(
-        db_index=True,
-        max_length=32,
-        verbose_name='Название')
     color = CharField(
-        max_length=7,
+        max_length=TAGS_COLOR_MAX_LEN,
         validators=[RegexValidator(
             regex=r'^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6})$',
             message='Enter a valid HEX code (e.g. #RRGGBB or #RGB)!')],
         unique=True,
         verbose_name='HEX цвет')
+    name = CharField(
+        db_index=True,
+        max_length=TAGS_NAME_MAX_LEN,
+        verbose_name='Название')
     slug = SlugField(
         unique=True,
         verbose_name='Краткий URL')
@@ -184,7 +190,7 @@ class Recipes(Model):
         verbose_name='Ингридиенты')
     name = CharField(
         db_index=True,
-        max_length=128,
+        max_length=RECIPES_NAME_MAX_LEN,
         unique=True,
         verbose_name='Название')
     tags = ManyToManyField(
@@ -368,8 +374,8 @@ class RecipesIngredients(Model):
                 fields=('ingredient', 'recipe'),
                 name='recipe_ingredient')]
         ordering = ('recipe', 'ingredient')
-        verbose_name = 'Связь моделей \'Рецепты\' и \'Ингридиенты\''
-        verbose_name_plural = 'Связи моделей \'Рецепты\' и \'Ингридиенты\''
+        verbose_name = 'Связь моделей "Рецепты" и "Ингридиенты"'
+        verbose_name_plural = 'Связи моделей "Рецепты" и "Ингридиенты"'
 
     def __str__(self):
         return f'{self.recipe.name} - {self.ingredient.name}'
@@ -411,8 +417,8 @@ class RecipesTags(Model):
                 fields=('recipe', 'tag'),
                 name='recipe_tag')]
         ordering = ('recipe', 'tag')
-        verbose_name = 'Связь моделей \'Рецепты\' и \'Теги\''
-        verbose_name_plural = 'Связи моделей \'Рецепты\' и \'Теги\''
+        verbose_name = 'Связь моделей "Рецепты" и "Теги"'
+        verbose_name_plural = 'Связи моделей "Рецепты" и "Теги"'
 
     def __str__(self):
         return f'{self.recipe.name} - {self.tag.name}'
