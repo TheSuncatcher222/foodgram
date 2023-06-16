@@ -18,8 +18,8 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db.models import (
     CASCADE,
-    CharField, ForeignKey, ImageField, IntegerField, ManyToManyField,
-    SlugField, TextField, UniqueConstraint,
+    CharField, FloatField, ForeignKey, ImageField, IntegerField,
+    ManyToManyField, SlugField, TextField, UniqueConstraint,
     Model)
 
 INGREDIENTS_NAME_MAX_LENGTH: int = 48
@@ -28,52 +28,50 @@ TAGS_COLOR_MAX_LEN: int = 7
 TAGS_NAME_MAX_LEN: int = 32
 RECIPES_NAME_MAX_LEN: int = 128
 
-UNITS = [
-    ('банка', 'банка'),
-    ('батон', 'батон'),
-    ('бутылка', 'бутылка'),
-    ('г', 'г'),
-    ('горсть', 'горсть'),
-    ('долька', 'долька'),
-    ('звездочка', 'звездочка'),
-    ('зубчик', 'зубчик'),
-    ('капля', 'капля'),
-    ('кусок', 'кусок'),
-    ('л', 'л'),
-    ('лист', 'лист'),
-    ('мл', 'мл'),
-    ('пакет', 'пакет'),
-    ('пакетик', 'пакетик'),
-    ('пачка', 'пачка'),
-    ('пласт', 'пласт'),
-    ('по вкусу', 'по вкусу'),
-    ('пучок', 'пучок'),
-    ('ст. л.', 'ст. л.'),
-    ('стакан', 'стакан'),
-    ('стебель', 'стебель'),
-    ('стручок', 'стручок'),
-    ('тушка', 'тушка'),
-    ('упаковка', 'упаковка'),
-    ('щепотка', 'щепотка'),
-    ('шт.', 'шт.'),
-    ('ч. л.', 'ч. л.')
-]
+UNITS = [('банка', 'банка'),
+         ('батон', 'батон'),
+         ('бутылка', 'бутылка'),
+         ('г', 'г'),
+         ('горсть', 'горсть'),
+         ('долька', 'долька'),
+         ('звездочка', 'звездочка'),
+         ('зубчик', 'зубчик'),
+         ('капля', 'капля'),
+         ('кусок', 'кусок'),
+         ('л', 'л'),
+         ('лист', 'лист'),
+         ('мл', 'мл'),
+         ('пакет', 'пакет'),
+         ('пакетик', 'пакетик'),
+         ('пачка', 'пачка'),
+         ('пласт', 'пласт'),
+         ('по вкусу', 'по вкусу'),
+         ('пучок', 'пучок'),
+         ('ст. л.', 'ст. л.'),
+         ('стакан', 'стакан'),
+         ('стебель', 'стебель'),
+         ('стручок', 'стручок'),
+         ('тушка', 'тушка'),
+         ('упаковка', 'упаковка'),
+         ('ч. л.', 'ч. л.'),
+         ('шт.', 'шт.'),
+         ('щепотка', 'щепотка')]
 
 
 class Ingredients(Model):
     """
-    Класс для представления ингридиентов.
+    Класс для представления ингредиентов.
 
-    Метод __str__ возвращает название ингридиента:
+    Метод __str__ возвращает название ингредиента:
         "Бананы"
 
     Сортировка производит в алфавитом порядке по возрастанию.
 
     Атрибуты
         name: str
-            уникальное название ингридиента
+            уникальное название ингредиента
         measurement_unit: str
-            единица измерения ингридиента
+            единица измерения ингредиента
             (должна содержаться в установленном списке единиц "UNITS")
 
     Индексируемые атрибуты:
@@ -87,15 +85,19 @@ class Ingredients(Model):
     measurement_unit = CharField(
         choices=UNITS,
         max_length=INGREDIENTS_UNIT_MAX_LENGTH,
-        verbose_name='единица измерения')
+        verbose_name='Единица измерения')
 
     class Meta:
         ordering = ('name', )
-        verbose_name = 'Ингридиент'
-        verbose_name_plural = 'Ингридиенты'
+        verbose_name = 'ингредиент'
+        verbose_name_plural = 'ингредиенты'
 
     def __str__(self):
-        return f'{self.name}'
+        return f'{self.name} ({self.measurement_unit})'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Tags(Model):
@@ -160,7 +162,7 @@ class Recipes(Model):
         image: str
             картинка рецепта (Base64)
         ingredients:
-            список ингридиентов
+            список ингредиентов
             связь через ManyToManyField и таблицу 'RecipesIngredients'
         name: str
             уникальное название рецепта
@@ -187,7 +189,7 @@ class Recipes(Model):
     ingredients = ManyToManyField(
         Ingredients,
         through='RecipesIngredients',
-        verbose_name='Ингридиенты')
+        verbose_name='ингредиенты')
     name = CharField(
         db_index=True,
         max_length=RECIPES_NAME_MAX_LEN,
@@ -246,8 +248,7 @@ class ShoppingCarts(Model):
 
     def __str__(self):
         return (
-            f'Рецепт "{self.cart_item}" в корзине '
-            f'пользователя {self.user.username}')
+            f'{self.user.username}: "{self.cart_item}"')
 
 
 class Subscriptions(Model):
@@ -284,7 +285,7 @@ class Subscriptions(Model):
         # Функционал реализован в сериализаторе SubscriptionsSerializer.
         ordering = ('-id', )
         verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
+        verbose_name_plural = 'Подписки на авторов'
 
     def __str__(self):
         return (
@@ -315,12 +316,12 @@ class RecipesFavoritesUsers(Model):
         User,
         on_delete=CASCADE,
         related_name='user_recipe_favorite',
-        verbose_name='ID пользователя')
+        verbose_name='Пользователь')
     recipe = ForeignKey(
         Recipes,
         on_delete=CASCADE,
         related_name='recipe_favorite_user',
-        verbose_name='ID рецепта')
+        verbose_name='Рецепт')
 
     class Meta:
         constraints = [
@@ -333,25 +334,24 @@ class RecipesFavoritesUsers(Model):
 
     def __str__(self):
         return (
-            f'Пользователь {self.user.username} добавил '
-            f'рецепт "{self.recipe.name}" в избранное')
+            f'{self.user.username}: "{self.recipe}"')
 
 
 class RecipesIngredients(Model):
     """
-    Класс для предоставления ингридиентов рецепта.
+    Класс для предоставления ингредиентов рецепта.
 
     Связывает таблицы 'Ingredients' и 'Recipes'.
 
-    Метод __str__ возвращает информацию по рецепте и ингридиенте:
+    Метод __str__ возвращает информацию по рецепте и ингредиенте:
         Лазанья - Сыр
 
-    Сортировка производится по названию рецепта и названию ингридиента
+    Сортировка производится по названию рецепта и названию ингредиента
     по возрастанию.
 
     Атрибуты
         ingredient: int
-            ID ингридиента
+            ID ингредиента
             связь через ForeignKey к модели "Ingredients"
         recipe: int
             ID рецепта
@@ -361,12 +361,15 @@ class RecipesIngredients(Model):
         Ingredients,
         on_delete=CASCADE,
         related_name='ingredient_recipe',
-        verbose_name='ID ингридиента')
+        verbose_name='ингредиент')
     recipe = ForeignKey(
         Recipes,
         on_delete=CASCADE,
         related_name='recipe_ingredient',
-        verbose_name='ID рецепта')
+        verbose_name='Рецепт')
+    amount = FloatField(
+        verbose_name='Количество')
+
 
     class Meta:
         constraints = [
@@ -374,8 +377,8 @@ class RecipesIngredients(Model):
                 fields=('ingredient', 'recipe'),
                 name='recipe_ingredient')]
         ordering = ('recipe', 'ingredient')
-        verbose_name = 'Связь моделей "Рецепты" и "Ингридиенты"'
-        verbose_name_plural = 'Связи моделей "Рецепты" и "Ингридиенты"'
+        verbose_name = 'Связь моделей "Рецепты" и "ингредиенты"'
+        verbose_name_plural = 'Связи моделей "Рецепты" и "ингредиенты"'
 
     def __str__(self):
         return f'{self.recipe.name} - {self.ingredient.name}'
@@ -404,12 +407,12 @@ class RecipesTags(Model):
         Recipes,
         on_delete=CASCADE,
         related_name='recipe_tag',
-        verbose_name='ID рецепта')
+        verbose_name='Рецепт')
     tag = ForeignKey(
         Tags,
         on_delete=CASCADE,
         related_name='tag_recipe',
-        verbose_name='ID тега')
+        verbose_name='Тег')
 
     class Meta:
         constraints = [
