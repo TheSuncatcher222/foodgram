@@ -27,6 +27,7 @@ INGREDIENTS_UNIT_MAX_LENGTH: int = 48
 TAGS_COLOR_MAX_LEN: int = 7
 TAGS_NAME_MAX_LEN: int = 200
 TAGS_SLUG_MAX_LEN: int = 200
+RECIPES_MEDIA_ROOT: str = 'recipes/images'
 RECIPES_NAME_MAX_LEN: int = 128
 
 UNITS = [('банка', 'банка'),
@@ -191,12 +192,12 @@ class Recipes(Model):
         validators=[MinValueValidator(1)],
         verbose_name='Время приготовления (в минутах)')
     image = ImageField(
-        upload_to='recipes/images/',
+        upload_to=RECIPES_MEDIA_ROOT,
         verbose_name='Картинка рецепта')
     ingredients = ManyToManyField(
         Ingredients,
         through='RecipesIngredients',
-        verbose_name='ингредиенты')
+        verbose_name='Ингредиенты')
     name = CharField(
         db_index=True,
         max_length=RECIPES_NAME_MAX_LEN,
@@ -216,6 +217,10 @@ class Recipes(Model):
 
     def __str__(self):
         return f'{self.name} ({self.cooking_time} мин.)'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class ShoppingCarts(Model):
