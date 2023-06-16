@@ -13,20 +13,19 @@ from footgram_app.models import Subscriptions
 USERS_URL: str = '/api/v1/users/'
 USERS_ME_URL: str = '/api/v1/users/me/'
 
-TEST_USER: User = lambda i: User.objects.create(
-    email=f'test_user_{i}@email.com',
-    username=f'test_user_{i}',
-    first_name=f'test_user_{i}_first_name',
-    last_name=f'test_user_{i}_last_name',
-    password=f'test_password_{i}')
 TEST_USERS_COUNT: int = 3
 
 
 @pytest.fixture()
 def create_users() -> None:
     """Фикстура для наполнения БД заданным числом пользователей."""
-    for i in range(TEST_USERS_COUNT):
-        TEST_USER(i+1)
+    for i in range(1, TEST_USERS_COUNT+1):
+        User.objects.create(
+            email=f'test_user_{i}@email.com',
+            username=f'test_user_{i}',
+            first_name=f'test_user_{i}_first_name',
+            last_name=f'test_user_{i}_last_name',
+            password=f'test_password_{i}')
     return
 
 
@@ -274,25 +273,14 @@ class TestCustomUserViewSet():
             'is_subscribed': True}
         return
 
-    @pytest.mark.parametrize(
-        'token, expected_data',
-        [('', {'detail': 'Учетные данные не были предоставлены.'}),
-         (' ', {'detail':
-                'Недопустимый заголовок токена. '
-                'Не предоставлены учетные данные.'}),
-         ('100%_non_valid_token', {'detail': 'Недопустимый токен.'})])
-    def test_users_me_anon(
-            self, token: str, expected_data: dict, create_users) -> None:
+    def test_users_me_anon(self, create_users) -> None:
         """Тест GET-запроса на личную страницу пользователя по эндпоинту
-        "/api/v1/users/me/" для анонимного клиента или клиента с поврежденным
-        токеном авторизации."""
+        "/api/v1/users/me/" для анонимного клиента."""
         client: APIClient = self.anon_client()
-        if token:
-            client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
         response = client.get(USERS_ME_URL)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data: dict = json.loads(response.content)
-        assert data == expected_data
+        assert data == {'detail': 'Учетные данные не были предоставлены.'}
         return
 
     def test_users_me_auth(self, create_users) -> None:
@@ -311,3 +299,21 @@ class TestCustomUserViewSet():
             'first_name': 'test_user_1_first_name',
             'last_name': 'test_user_1_last_name',
             'is_subscribed': False}
+
+    @pytest.mark.parametrize(
+        'token, expected_data',
+        [(' ', {'detail':
+                'Недопустимый заголовок токена. '
+                'Не предоставлены учетные данные.'}),
+         ('100%_non_valid_token', {'detail': 'Недопустимый токен.'})])
+    def test_users_me_invalid_token(
+            self, token: str, expected_data: dict, create_users) -> None:
+        """Тест GET-запроса на личную страницу пользователя по эндпоинту
+        "/api/v1/users/me/" для клиента с поврежденным токеном авторизации."""
+        client: APIClient = self.anon_client()
+        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        response = client.get(USERS_ME_URL)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        data: dict = json.loads(response.content)
+        assert data == expected_data
+        return
