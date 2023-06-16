@@ -25,7 +25,8 @@ from django.db.models import (
 INGREDIENTS_NAME_MAX_LENGTH: int = 48
 INGREDIENTS_UNIT_MAX_LENGTH: int = 48
 TAGS_COLOR_MAX_LEN: int = 7
-TAGS_NAME_MAX_LEN: int = 32
+TAGS_NAME_MAX_LEN: int = 200
+TAGS_SLUG_MAX_LEN: int = 200
 RECIPES_NAME_MAX_LEN: int = 128
 
 UNITS = [('банка', 'банка'),
@@ -123,15 +124,17 @@ class Tags(Model):
     color = CharField(
         max_length=TAGS_COLOR_MAX_LEN,
         validators=[RegexValidator(
-            regex=r'^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6})$',
-            message='Enter a valid HEX code (e.g. #RRGGBB or #RGB)!')],
+            regex=r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$',
+            message='Введите корректный HEX цвет!')],
         unique=True,
         verbose_name='HEX цвет')
     name = CharField(
         db_index=True,
         max_length=TAGS_NAME_MAX_LEN,
+        unique=True,
         verbose_name='Название')
     slug = SlugField(
+        max_length=TAGS_SLUG_MAX_LEN,
         unique=True,
         verbose_name='Краткий URL')
 
@@ -142,6 +145,10 @@ class Tags(Model):
 
     def __str__(self):
         return f'{self.name} ({self.slug})'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Recipes(Model):
@@ -369,7 +376,6 @@ class RecipesIngredients(Model):
         verbose_name='Рецепт')
     amount = FloatField(
         verbose_name='Количество')
-
 
     class Meta:
         constraints = [
