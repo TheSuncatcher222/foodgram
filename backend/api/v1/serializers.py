@@ -15,8 +15,11 @@
 """
 
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
 from re import sub
+from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.serializers import (
     ModelSerializer,
     EmailField, CharField, SerializerMethodField,
@@ -163,6 +166,7 @@ class RecipesSerializer(ModelSerializer):
         по работе со связными сериализаторами:
             - "ingredients": "IngredientsSerializer";
             - "tags": "TagsSerializer"."""
+        validated_data['author'] = self.context['request'].user
         ingredients: list = validated_data.pop('ingredients')
         tags: list = validated_data.pop('tags')
         recipe = Recipes.objects.create(**validated_data)
@@ -194,8 +198,52 @@ class RecipesSerializer(ModelSerializer):
             user=self.context['request'].user,
             cart_item=obj).exists()
 
-    def perform_create(self, serializer):
+    # ToDo: проверить необходимость кода:
+    # def perform_create(self, serializer):
+    #     """Дополняет метод save() для записи в БД:
+    #         - добавляет пользователя из запроса в поле "author"."""
+    #     serializer.save(author=self.request.user)
+    #     return
+
+
+class RecipesFavoritesUsersSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Recipes" в случае, если происходит
+    добавление рецепта в избранное или удаление его оттуда."""
+
+    class Meta:
+        model = Recipes
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time')
+
+    def create(self, serializer):
         """Дополняет метод save() для записи в БД:
-            - добавляет пользователя из запроса в поле "author"."""
-        serializer.save(author=self.request.user)
+            - добавляет запись в таблицу "RecipesFavoritesUsers"."""
+        recipe_id = self.kwargs['id']
+        recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
+        user: User = self.request.user
+        if RecipesFavoritesUsers.objects.filter(
+                recipe=recipe, user=user).exists():
+            raise ValidationError(
+                'Ошибка добавления в избранное. '
+                'Рецепт уже находится в избранном.')
+        RecipesFavoritesUsers.objects.create(recipe=recipe, user=user)
         return
+
+    def destroy(self, request, *args, **kwargs):
+        """Дополняет метод destroy() для удаления из БД:
+            - удаляет запись из таблицы "RecipesFavoritesUsers"."""
+        recipe_id: int = self.kwargs['pk']
+        recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
+        user: User = self.request.user
+        if not RecipesFavoritesUsers.objects.filter(
+                recipe=recipe, user=user).exists():
+            raise ValidationError(
+                'Ошибка удаления из избранного. '
+                'Рецепта нет в избранном.')
+        recipe_favorite: RecipesFavoritesUsers = get_object_or_404(
+            RecipesFavoritesUsers, recipe=recipe_id, user=user)
+        recipe_favorite.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
