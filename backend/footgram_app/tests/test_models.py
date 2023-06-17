@@ -1,4 +1,8 @@
+import os
+
 import pytest
+import shutil
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
@@ -766,3 +770,10 @@ class TestRecipesTagsModel():
         assert tag.remote_field.related_name == 'tag_recipe'
         assert tag.verbose_name == 'Тег'
         return
+
+
+def test_delete_temp_media_folder() -> None:
+    """Проверяет, что папка с тестовыми медиа-данными успешно удалена."""
+    shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
+    assert not os.path.exists(settings.MEDIA_ROOT)
+    return
