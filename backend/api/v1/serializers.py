@@ -22,7 +22,7 @@ from rest_framework.serializers import (
     EmailField, CharField, SerializerMethodField,
     ValidationError)
 
-from footgram_app.models import Ingredients, Subscriptions
+from footgram_app.models import Ingredients, Subscriptions, Tags
 
 USER_EMAIL_MAX_LEN: int = 254
 USER_FIRST_NAME_MAX_LEN: int = 150
@@ -117,3 +117,15 @@ class IngredientsSerializer(ModelSerializer):
             'id',
             'name',
             'measurement_unit')
+
+
+class TagsSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Tags"."""
+
+    class Meta:
+        model = Tags
+        fields = (
+            'id',
+            'name',
+            'color',
+            'slug')
