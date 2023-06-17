@@ -21,8 +21,9 @@ from rest_framework.serializers import (
     ModelSerializer,
     EmailField, CharField, SerializerMethodField,
     ValidationError)
-
-from footgram_app.models import Ingredients, Subscriptions, Tags
+from footgram_app.models import (
+    Ingredients, Recipes, RecipesFavoritesUsers, RecipesIngredients,
+    RecipesTags, ShoppingCarts, Subscriptions, Tags)
 
 USER_EMAIL_MAX_LEN: int = 254
 USER_FIRST_NAME_MAX_LEN: int = 150
@@ -70,11 +71,12 @@ class CustomUserSerializer(UserSerializer):
         """Показывает статус подписки пользователя в поле 'is_subscribed'.
         Возвращает True, если пользователь имеет подписку, False - если не
         имеет, или пользователь не авторизован."""
-        if self.context['request'].user.is_anonymous:
+        user: User = self.context['request'].user
+        if user.is_anonymous:
             return False
         else:
             return Subscriptions.objects.filter(
-                subscriber=self.context['request'].user,
+                subscriber=user,
                 subscription_to=obj).exists()
 
     def validate_email(self, value):
@@ -129,3 +131,71 @@ class TagsSerializer(ModelSerializer):
             'name',
             'color',
             'slug')
+
+
+class RecipesSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Recipes"."""
+
+    author = CustomUserSerializer(read_only=True)
+    ingredients = IngredientsSerializer(many=True)
+    is_favorited = SerializerMethodField()
+    is_in_shopping_cart = SerializerMethodField()
+    is_subscribed = SerializerMethodField()
+    tags = TagsSerializer(many=True)
+
+    class Meta:
+        model = Recipes
+        fields = (
+            'id',
+            'tags',
+            'author',
+            'ingredients',
+            'is_favorited',
+            'is_in_shopping_cart',
+            'name',
+            'image',
+            'text',
+            'cooking_time')
+        read_only_fields = ('author',)
+
+    def create(self, validated_data):
+        """Переопределяет метод сохранения данных, включает инструкции
+        по работе со связными сериализаторами:
+            - "ingredients": "IngredientsSerializer";
+            - "tags": "TagsSerializer"."""
+        ingredients: list = validated_data.pop('ingredients')
+        tags: list = validated_data.pop('tags')
+        recipe = Recipes.objects.create(**validated_data)
+        for ingredient in ingredients:
+            # ToDo: проверить, что тут происходит и можно ли применить метод:
+            # ingredient = ingredient.title()
+            current_ingredient, _ = (
+                Ingredients.objects.get_or_create(**ingredient))
+            RecipesIngredients.objects.create(
+                recipe=recipe, ingredient=current_ingredient)
+        for tag in tags:
+            current_tag, _ = Tags.objects.get_or_create(**tag)
+            RecipesTags.objects.create(recipe=recipe, tag=current_tag)
+        return recipe
+
+    def get_is_favorited(self, obj):
+        """Показывает наличие рецепта в избранном пользователя в поле
+        'is_subscribed'. Возвращает True, если рецепт в избранном,
+        False - если нет."""
+        return RecipesFavoritesUsers.objects.filter(
+            user=self.context['request'].user,
+            recipe=obj).exists()
+
+    def get_is_in_shopping_cart(self, obj):
+        """Показывает наличие рецепта в корзине пользователя в поле
+        'is_in_shopping_cart'. Возвращает True, если рецепт в корзине,
+        False - если нет."""
+        return ShoppingCarts.objects.filter(
+            user=self.context['request'].user,
+            cart_item=obj).exists()
+
+    def perform_create(self, serializer):
+        """Дополняет метод save() для записи в БД:
+            - добавляет пользователя из запроса в поле "author"."""
+        serializer.save(author=self.request.user)
+        return
