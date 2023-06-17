@@ -381,18 +381,18 @@ class RecipesIngredients(Model):
             ID рецепта
             связь через ForeignKey к модели "Recipes"
     """
+    amount = FloatField(
+        verbose_name='Количество')
     ingredient = ForeignKey(
         Ingredients,
         on_delete=CASCADE,
         related_name='ingredient_recipe',
-        verbose_name='ингредиент')
+        verbose_name='Ингредиент')
     recipe = ForeignKey(
         Recipes,
         on_delete=CASCADE,
         related_name='recipe_ingredient',
         verbose_name='Рецепт')
-    amount = FloatField(
-        verbose_name='Количество')
 
     class Meta:
         constraints = [
