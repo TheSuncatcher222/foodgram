@@ -223,96 +223,6 @@ class Recipes(Model):
         super().save(*args, **kwargs)
 
 
-class ShoppingCarts(Model):
-    """
-    Класс для представления списка покупок.
-
-    Связывает таблицы "User" и "Recipes".
-
-    Метод __str__ возвращает название рецепта в корзине пользователя:
-        "Рецепт "Лазанья" в корзине пользователя Omnomnom777"
-
-    Сортировка производится по пользователю и рецепту по возрастанию.
-
-    Атрибуты
-        user: int
-            ID пользователя
-            связь через ForeignKey к модели "User"
-        cart_item: int
-            ID рецепта, добавленный в корзину
-            связь через ForeignKey к модели "Recipes"
-    """
-    user = ForeignKey(
-        User,
-        on_delete=CASCADE,
-        related_name='shopping_cart',
-        verbose_name='Корзина пользователя')
-    cart_item = ForeignKey(
-        Recipes,
-        on_delete=CASCADE,
-        related_name='shopping_cart',
-        verbose_name='Рецепт в корзине')
-
-    class Meta:
-        ordering = ('user', 'cart_item')
-        verbose_name = 'Список покупок'
-        verbose_name_plural = 'Списки покупок'
-
-    def __str__(self):
-        return (
-            f'{self.user.username}: "{self.cart_item}"')
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-
-class Subscriptions(Model):
-    """
-    Класс для представления подписок пользователей друг на друга.
-
-    Метод __str__ возвращает значение подписки:
-        "Подписка Omnomnom777 на Amnyamnyam999"
-
-    Сортировка производится по дате подписки по убыванию от новых к старым.
-
-    Атрибуты
-        subscriber: int
-            ID пользователя, осуществляющего подписку
-            связь через ForeignKey к модели "User"
-        subscription_to: int
-            ID пользователя, на которого осуществляется подписка
-            связь через ForeignKey к модели "User"
-    """
-    subscriber = ForeignKey(
-        User,
-        on_delete=CASCADE,
-        related_name='subscriber',
-        verbose_name='Подписчик')
-    subscription_to = ForeignKey(
-        User,
-        on_delete=CASCADE,
-        related_name='subscription_author',
-        verbose_name='Автор на которого подписка')
-
-    class Meta:
-        # Проверка на UniqueConstraint не может быть произведена,
-        # так как подписки должны работать в обе стороны.
-        # Функционал реализован в сериализаторе SubscriptionsSerializer.
-        ordering = ('-id', )
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки на авторов'
-
-    def __str__(self):
-        return (
-            f'Подписка {self.subscriber.username} '
-            f'на {self.subscription_to.username}')
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-
 class RecipesFavoritesUsers(Model):
     """
     Класс для представления избранных рецептов.
@@ -452,6 +362,96 @@ class RecipesTags(Model):
 
     def __str__(self):
         return f'{self.recipe.name} - {self.tag.name}'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class ShoppingCarts(Model):
+    """
+    Класс для представления списка покупок.
+
+    Связывает таблицы "User" и "Recipes".
+
+    Метод __str__ возвращает название рецепта в корзине пользователя:
+        "Рецепт "Лазанья" в корзине пользователя Omnomnom777"
+
+    Сортировка производится по пользователю и рецепту по возрастанию.
+
+    Атрибуты
+        user: int
+            ID пользователя
+            связь через ForeignKey к модели "User"
+        cart_item: int
+            ID рецепта, добавленный в корзину
+            связь через ForeignKey к модели "Recipes"
+    """
+    user = ForeignKey(
+        User,
+        on_delete=CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Корзина пользователя')
+    cart_item = ForeignKey(
+        Recipes,
+        on_delete=CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Рецепт в корзине')
+
+    class Meta:
+        ordering = ('user', 'cart_item')
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
+
+    def __str__(self):
+        return (
+            f'{self.user.username}: "{self.cart_item}"')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class Subscriptions(Model):
+    """
+    Класс для представления подписок пользователей друг на друга.
+
+    Метод __str__ возвращает значение подписки:
+        "Подписка Omnomnom777 на Amnyamnyam999"
+
+    Сортировка производится по дате подписки по убыванию от новых к старым.
+
+    Атрибуты
+        subscriber: int
+            ID пользователя, осуществляющего подписку
+            связь через ForeignKey к модели "User"
+        subscription_to: int
+            ID пользователя, на которого осуществляется подписка
+            связь через ForeignKey к модели "User"
+    """
+    subscriber = ForeignKey(
+        User,
+        on_delete=CASCADE,
+        related_name='subscriber',
+        verbose_name='Подписчик')
+    subscription_to = ForeignKey(
+        User,
+        on_delete=CASCADE,
+        related_name='subscription_author',
+        verbose_name='Автор на которого подписка')
+
+    class Meta:
+        # Проверка на UniqueConstraint не может быть произведена,
+        # так как подписки должны работать в обе стороны.
+        # Функционал реализован в сериализаторе SubscriptionsSerializer.
+        ordering = ('-id', )
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки на авторов'
+
+    def __str__(self):
+        return (
+            f'Подписка {self.subscriber.username} '
+            f'на {self.subscription_to.username}')
 
     def save(self, *args, **kwargs):
         self.full_clean()
