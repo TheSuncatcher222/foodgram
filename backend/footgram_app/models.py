@@ -262,6 +262,10 @@ class ShoppingCarts(Model):
         return (
             f'{self.user.username}: "{self.cart_item}"')
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 
 class Subscriptions(Model):
     """
@@ -303,6 +307,10 @@ class Subscriptions(Model):
         return (
             f'Подписка {self.subscriber.username} '
             f'на {self.subscription_to.username}')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class RecipesFavoritesUsers(Model):
@@ -347,6 +355,10 @@ class RecipesFavoritesUsers(Model):
     def __str__(self):
         return (
             f'{self.user.username}: "{self.recipe}"')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class RecipesIngredients(Model):
@@ -394,6 +406,10 @@ class RecipesIngredients(Model):
     def __str__(self):
         return f'{self.recipe.name} - {self.ingredient.name}'
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 
 class RecipesTags(Model):
     """
@@ -436,3 +452,7 @@ class RecipesTags(Model):
 
     def __str__(self):
         return f'{self.recipe.name} - {self.tag.name}'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
