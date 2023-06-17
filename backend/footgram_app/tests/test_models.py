@@ -20,11 +20,6 @@ IMAGE_TEST_FOLDER: str = 'test_media'
 
 TEST_OBJECTS_COUNT: int = 2
 
-FAVORITES_VALID_OBJ = lambda user, recipe: (
-    RecipesFavoritesUsers.objects.create(
-        user=user,
-        recipe=recipe))
-
 
 def create_ingredient_obj(num: int) -> Ingredients:
     """Создает и возвращает объект модели "Ingredients"."""
@@ -58,18 +53,20 @@ def create_recipe_obj(num: int, user: User) -> None:
     return recipe
 
 
+def create_recipe_favorite_obj(
+        recipe: Recipes, user: User) -> RecipesFavoritesUsers:
+    """Создает и возвращает объект модели "Ingredients"."""
+    return RecipesFavoritesUsers.objects.create(
+        recipe=recipe,
+        user=user)
+
+
 def create_shopping_cart_obj(
         num: int, recipe: Recipes, user: User) -> ShoppingCarts:
     """Создает и возвращает объект модели "ShoppingCarts"."""
     return ShoppingCarts.objects.create(
         user=user,
         cart_item=recipe)
-
-
-SHOPPING_CARTS_VALID_OBJ = lambda user, recipe: (
-    ShoppingCarts.objects.create(
-        user=user,
-        cart_item=recipe))
 
 
 def create_subscription_obj(
@@ -548,4 +545,57 @@ class TestSubscriptionsModel():
         assert subscription_to.remote_field.related_name == (
             'subscription_author')
         assert subscription_to.verbose_name == 'Автор на которого подписка'
+        return
+
+
+@pytest.mark.django_db
+class TestRecipesFavoritesUsersModel():
+    """Производит тест модели "RecipesFavoritesUsers"."""
+
+    def test_valid_create(self) -> None:
+        """Тестирует возможность создания объекта с валидными данными."""
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        assert RecipesFavoritesUsers.objects.all().count() == 0
+        recipe_favorite = create_recipe_favorite_obj(
+            recipe=test_recipe_1, user=test_user_1)
+        assert RecipesFavoritesUsers.objects.all().count() == 1
+        assert recipe_favorite.user == test_user_1
+        assert recipe_favorite.recipe == test_recipe_1
+        return
+
+    def test_unique_constraint(self):
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        assert RecipesFavoritesUsers.objects.all().count() == 0
+        create_recipe_favorite_obj(recipe=test_recipe_1, user=test_user_1)
+        assert RecipesFavoritesUsers.objects.all().count() == 1
+        with pytest.raises(ValidationError) as err:
+            create_recipe_favorite_obj(recipe=test_recipe_1, user=test_user_1)
+        assert str(err.value) == (
+            "{'__all__': ['Избранный рецепт с такими значениями полей "
+            "Пользователь и Рецепт уже существует.']}")
+        assert RecipesFavoritesUsers.objects.all().count() == 1
+
+    def test_meta(self) -> None:
+        """Тестирует мета-данные модели и полей.
+        Тестирует строковое представление модели."""
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        recipe_favorite = create_recipe_favorite_obj(
+            recipe=test_recipe_1, user=test_user_1)
+        assert str(recipe_favorite) == (
+            'test_username_1: "test_name_1 (1 мин.)"')
+        assert recipe_favorite._meta.ordering == ('-id', )
+        assert recipe_favorite._meta.verbose_name == 'Избранный рецепт'
+        assert recipe_favorite._meta.verbose_name_plural == 'Избранные рецепты'
+        user = recipe_favorite._meta.get_field('user')
+        assert user.remote_field.on_delete == CASCADE
+        assert user.remote_field.related_name == 'user_recipe_favorite'
+        assert user.verbose_name == 'Пользователь'
+        recipe = recipe_favorite._meta.get_field('recipe')
+        assert recipe.remote_field.on_delete == CASCADE
+        assert recipe.remote_field.related_name == (
+            'recipe_favorite_user')
+        assert recipe.verbose_name == 'Рецепт'
         return
