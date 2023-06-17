@@ -1,6 +1,4 @@
-import os
 import pytest
-import shutil
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
@@ -8,11 +6,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import CASCADE
 
 from footgram_app.models import (
-    RECIPES_MEDIA_ROOT,
     Ingredients, Recipes, RecipesFavoritesUsers, RecipesIngredients,
     RecipesTags, ShoppingCarts, Subscriptions, Tags)
-
-from footgram_backend.settings import MEDIA_ROOT
 
 IMAGE_BYTES: bytes = (
     b'\x47\x49\x46\x38\x39\x61\x02\x00'
@@ -22,8 +17,6 @@ IMAGE_BYTES: bytes = (
     b'\x02\x00\x01\x00\x00\x02\x02\x0C'
     b'\x0A\x00\x3B')
 IMAGE_TEST_FOLDER: str = 'test_media'
-IMAGE_TEST_FOLDER_FULL: str = (
-    MEDIA_ROOT / RECIPES_MEDIA_ROOT / IMAGE_TEST_FOLDER)
 
 TEST_OBJECTS_COUNT: int = 2
 
@@ -53,8 +46,7 @@ RECIPES_TAGS_VALID_OBJ = lambda recipe, tag: (
 def create_recipes_obj(
         num: int, user: User, image_code: bytes = IMAGE_BYTES) -> None:
     """Создает и возвращает объект модели "Recipes".
-    Изображения сохраняются в отдельную субдиректорию медиа "tests"."""
-    os.makedirs(IMAGE_TEST_FOLDER, exist_ok=True)
+    Изображения сохраняются в отдельную субдиректорию медиа для тестов."""
     image_file: ContentFile = ContentFile(image_code)
     uploaded_image: SimpleUploadedFile = SimpleUploadedFile(
         f'test_image_{num}.gif', image_file.read(), content_type='image/gif')
@@ -85,7 +77,7 @@ def create_tags_obj(num: int, unique_color: str) -> Tags:
         slug=f'test_slug_{num}')
 
 
-def create_user_obj(num: int):
+def create_user_obj(num: int) -> User:
     return User.objects.create(
         email=f'test_email_{num}@email.com',
         username=f'test_username_{num}',
@@ -94,8 +86,10 @@ def create_user_obj(num: int):
         password=f'test_password_{num}')
 
 
-def delete_recipes_test_media():
-    shutil.rmtree(IMAGE_TEST_FOLDER, ignore_errors=True)
+@pytest.fixture(autouse=True)
+def test_override_media_root(settings) -> None:
+    """Фикстура, перезаписывающая путь папки "MEDIA_ROOT"."""
+    settings.MEDIA_ROOT = settings.MEDIA_ROOT / IMAGE_TEST_FOLDER
     return
 
 
@@ -151,23 +145,42 @@ class TestIngredientsModel():
         assert sorted(self.INGREDIENTS_VALID_UNITS) == field.choices
         return
 
-    @pytest.mark.parametrize(
-        'invalid_name, error_message',
-        [(f'{"a"*49}',
-          "{'name': ['Убедитесь, что это значение содержит не более 48 "
-          "символов (сейчас 49).']}"),
-         ('',
-          "{'name': ['Это поле не может быть пустым.']}")])
-    def test_invalid_name(self, invalid_name, error_message) -> None:
+    def test_invalid_name(self) -> None:
         """Тестирует создание объекта с невалидным значением поля "name"."""
         assert Ingredients.objects.all().count() == 0
         with pytest.raises(ValidationError) as err:
             Ingredients.objects.create(
-                name=invalid_name,
+                name=f'{"a"*49}',
                 measurement_unit='шт.')
-        assert str(err.value) == error_message
+        assert str(err.value) == (
+            "{'name': ['Убедитесь, что это значение содержит не более 48 "
+            "символов (сейчас 49).']}")
         assert Ingredients.objects.all().count() == 0
         return
+
+    def test_blank_fields(self) -> None:
+        """Тестирует проверку пустых полей модели."""
+        assert Ingredients.objects.all().count() == 0
+        with pytest.raises(ValidationError) as err:
+            Ingredients.objects.create(
+                name='',
+                measurement_unit='')
+        assert str(err.value) == (
+            "{'name': ['Это поле не может быть пустым.'], "
+            "'measurement_unit': ['Это поле не может быть пустым.']}")
+        assert Ingredients.objects.all().count() == 0
+
+    def test_null_fields(self) -> None:
+        """Тестирует проверку незаполненных полей модели."""
+        assert Ingredients.objects.all().count() == 0
+        with pytest.raises(ValidationError) as err:
+            Ingredients.objects.create(
+                name=None,
+                measurement_unit=None)
+        assert str(err.value) == (
+            "{'name': ['Это поле не может иметь значение NULL.'], "
+            "'measurement_unit': ['Это поле не может иметь значение NULL.']}")
+        assert Ingredients.objects.all().count() == 0
 
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
@@ -248,24 +261,47 @@ class TestTagsModel():
         assert Tags.objects.all().count() == 0
         return
 
-    @pytest.mark.parametrize(
-        'invalid_slug, error_message',
-        [(f'{"a"*201}',
-          "{'slug': ['Убедитесь, что это значение содержит не более 200 "
-          "символов (сейчас 201).']}"),
-         ('',
-          "{'slug': ['Это поле не может быть пустым.']}")])
-    def test_invalid_slug(self, invalid_slug, error_message) -> None:
+    def test_invalid_slug(self) -> None:
         """Тестирует создание объекта с невалидным значением поля "name"."""
         assert Tags.objects.all().count() == 0
         with pytest.raises(ValidationError) as err:
             Tags.objects.create(
                 color='#000',
                 name='tag',
-                slug=invalid_slug)
-        assert str(err.value) == error_message
+                slug=f'{"a"*201}')
+        assert str(err.value) == (
+            "{'slug': ['Убедитесь, что это значение содержит не более 200 "
+            "символов (сейчас 201).']}")
         assert Tags.objects.all().count() == 0
         return
+
+    def test_blank_fields(self) -> None:
+        """Тестирует проверку пустых полей модели."""
+        assert Tags.objects.all().count() == 0
+        with pytest.raises(ValidationError) as err:
+            Tags.objects.create(
+                color='',
+                name='',
+                slug='')
+        assert str(err.value) == (
+            "{'color': ['Это поле не может быть пустым.'], "
+            "'name': ['Это поле не может быть пустым.'], "
+            "'slug': ['Это поле не может быть пустым.']}")
+        assert Tags.objects.all().count() == 0
+
+    def test_null_fields(self) -> None:
+        """Тестирует проверку незаполненных полей модели."""
+        assert Tags.objects.all().count() == 0
+        with pytest.raises(ValidationError) as err:
+            Tags.objects.create(
+                color=None,
+                name=None,
+                slug=None)
+        assert str(err.value) == (
+            "{'color': ['Это поле не может иметь значение NULL.'], "
+            "'name': ['Это поле не может иметь значение NULL.'], "
+            "'slug': ['Это поле не может иметь значение NULL.']}")
+        assert Ingredients.objects.all().count() == 0
 
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
@@ -314,7 +350,6 @@ class TestRecipesModel():
         assert recipe.image.read() == IMAGE_BYTES
         assert recipe.name == 'test_name_1'
         assert recipe.text == 'test_text_1'
-        delete_recipes_test_media()
         return
 
     def test_invalid_cooking_time(self) -> None:
@@ -395,7 +430,6 @@ class TestRecipesModel():
             create_recipes_obj(num=1, user=test_user)
         assert str(err.value) == (
             "{'name': ['Рецепт с таким Название уже существует.']}")
-        delete_recipes_test_media()
         return
 
     def test_meta(self) -> None:
@@ -425,5 +459,4 @@ class TestRecipesModel():
         assert tags.verbose_name == 'Теги'
         text = recipe._meta.get_field('text')
         assert text.verbose_name == 'Описание'
-        delete_recipes_test_media()
         return
