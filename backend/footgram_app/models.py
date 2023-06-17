@@ -400,8 +400,8 @@ class RecipesIngredients(Model):
                 fields=('ingredient', 'recipe'),
                 name='recipe_ingredient')]
         ordering = ('recipe', 'ingredient')
-        verbose_name = 'Связь моделей "Рецепты" и "ингредиенты"'
-        verbose_name_plural = 'Связи моделей "Рецепты" и "ингредиенты"'
+        verbose_name = 'Связь моделей "Рецепты" и "Ингредиенты"'
+        verbose_name_plural = 'Связи моделей "Рецепты" и "Ингредиенты"'
 
     def __str__(self):
         return f'{self.recipe.name} - {self.ingredient.name}'
