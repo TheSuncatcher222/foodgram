@@ -1,7 +1,9 @@
 from rest_framework.serializers import (
-    CharField, ChoiceField, EmailField, IntegerField, SerializerMethodField)
+    CharField, ChoiceField, EmailField, IntegerField, SerializerMethodField,
+    SlugField)
 
-from api.v1.serializers import CustomUserSerializer, IngredientsSerializer
+from api.v1.serializers import (
+    CustomUserSerializer, IngredientsSerializer, TagsSerializer)
 
 
 def test_custom_user_serializer() -> None:
@@ -27,6 +29,19 @@ def test_ingredients_serializer() -> None:
         'name': CharField,
         'measurement_unit': ChoiceField}
     serializer: IngredientsSerializer = IngredientsSerializer()
+    assert list(serializer.fields.keys()) == list(expected_fields.keys())
+    for field, field_type in expected_fields.items():
+        assert isinstance(serializer.fields[field], field_type)
+
+
+def test_tags_serializer() -> None:
+    """Тестирует поля сериализатора "TagsSerializer"."""
+    expected_fields = {
+        'id': IntegerField,
+        'name': CharField,
+        'color': CharField,
+        'slug': SlugField}
+    serializer: TagsSerializer = TagsSerializer()
     assert list(serializer.fields.keys()) == list(expected_fields.keys())
     for field, field_type in expected_fields.items():
         assert isinstance(serializer.fields[field], field_type)
