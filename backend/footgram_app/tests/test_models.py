@@ -39,10 +39,11 @@ def create_recipe_ingredient_obj(
         recipe=recipe)
 
 
-RECIPES_TAGS_VALID_OBJ = lambda recipe, tag: (
-    RecipesTags.objects.create(
+def create_recipe_tag_obj(recipe: Recipes, tag: Tags) -> RecipesTags:
+    """Создает и возвращает объект модели "RecipesTags"."""
+    return RecipesTags.objects.create(
         recipe=recipe,
-        tag=tag))
+        tag=tag)
 
 
 def create_recipe_obj(num: int, user: User) -> None:
@@ -184,6 +185,7 @@ class TestIngredientsModel():
             "{'name': ['Это поле не может быть пустым.'], "
             "'measurement_unit': ['Это поле не может быть пустым.']}")
         assert Ingredients.objects.all().count() == 0
+        return
 
     def test_null_fields(self) -> None:
         """Тестирует проверку незаполненных полей модели."""
@@ -196,6 +198,7 @@ class TestIngredientsModel():
             "{'name': ['Это поле не может иметь значение NULL.'], "
             "'measurement_unit': ['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
+        return
 
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
@@ -303,6 +306,7 @@ class TestTagsModel():
             "'name': ['Это поле не может быть пустым.'], "
             "'slug': ['Это поле не может быть пустым.']}")
         assert Tags.objects.all().count() == 0
+        return
 
     def test_null_fields(self) -> None:
         """Тестирует проверку незаполненных полей модели."""
@@ -317,6 +321,7 @@ class TestTagsModel():
             "'name': ['Это поле не может иметь значение NULL.'], "
             "'slug': ['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
+        return
 
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
@@ -418,6 +423,7 @@ class TestRecipesModel():
             "'name': ['Это поле не может быть пустым.'], "
             "'text': ['Это поле не может быть пустым.']}")
         assert Ingredients.objects.all().count() == 0
+        return
 
     def test_null_fields(self) -> None:
         """Тестирует проверку незаполненных полей модели."""
@@ -436,6 +442,7 @@ class TestRecipesModel():
             "'name': ['Это поле не может иметь значение NULL.'], "
             "'text': ['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
+        return
 
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
@@ -584,6 +591,7 @@ class TestRecipesFavoritesUsersModel():
             "{'__all__': ['Избранный рецепт с такими значениями полей "
             "Пользователь и Рецепт уже существует.']}")
         assert RecipesFavoritesUsers.objects.all().count() == 1
+        return
 
     def test_meta(self) -> None:
         """Тестирует мета-данные модели и полей.
@@ -603,10 +611,10 @@ class TestRecipesFavoritesUsersModel():
         assert user.verbose_name == 'Пользователь'
         recipe = recipe_favorite._meta.get_field('recipe')
         assert recipe.remote_field.on_delete == CASCADE
-        assert recipe.remote_field.related_name == (
-            'recipe_favorite_user')
+        assert recipe.remote_field.related_name == 'recipe_favorite_user'
         assert recipe.verbose_name == 'Рецепт'
         return
+
 
 @pytest.mark.django_db
 class TestRecipesIngredientsModel():
@@ -642,6 +650,7 @@ class TestRecipesIngredientsModel():
         assert str(err.value) == (
             "{'amount': "
             "['Значение “один” должно быть числом с плавающей точкой.']}")
+        return
 
     def test_unique_constraint(self) -> None:
         """Тестирует UniqueConstraint модели."""
@@ -661,9 +670,10 @@ class TestRecipesIngredientsModel():
                 ingredient=test_ingredient_1,
                 recipe=test_recipe_1)
         assert str(err.value) == (
-            "{'__all__': [\'Связь моделей \"Рецепты\" и \"ингредиенты\" "
+            "{'__all__': [\'Связь моделей \"Рецепты\" и \"Ингредиенты\" "
             "с такими значениями полей Ингредиент и Рецепт уже существует.']}")
         assert RecipesIngredients.objects.all().count() == 1
+        return
 
     def test_meta(self) -> None:
         """Тестирует мета-данные модели и полей.
@@ -681,19 +691,78 @@ class TestRecipesIngredientsModel():
             'test_name_1 - test_name_1')
         assert recipe_ingredient._meta.ordering == ('recipe', 'ingredient')
         assert recipe_ingredient._meta.verbose_name == (
-            'Связь моделей "Рецепты" и "ингредиенты"')
+            'Связь моделей "Рецепты" и "Ингредиенты"')
         assert recipe_ingredient._meta.verbose_name_plural == (
-            'Связи моделей "Рецепты" и "ингредиенты"')
+            'Связи моделей "Рецепты" и "Ингредиенты"')
         amount = recipe_ingredient._meta.get_field('amount')
         assert amount.verbose_name == 'Количество'
         ingredient = recipe_ingredient._meta.get_field('ingredient')
         assert ingredient.remote_field.on_delete == CASCADE
-        assert ingredient.remote_field.related_name == (
-            'ingredient_recipe')
+        assert ingredient.remote_field.related_name == 'ingredient_recipe'
         assert ingredient.verbose_name == 'Ингредиент'
         recipe = recipe_ingredient._meta.get_field('recipe')
         assert recipe.remote_field.on_delete == CASCADE
-        assert recipe.remote_field.related_name == (
-            'recipe_ingredient')
+        assert recipe.remote_field.related_name == 'recipe_ingredient'
         assert recipe.verbose_name == 'Рецепт'
+        return
+
+
+@pytest.mark.django_db
+class TestRecipesTagsModel():
+    """Производит тест модели "RecipesTags"."""
+
+    def test_valid_create(self) -> None:
+        """Тестирует возможность создания объекта с валидными данными."""
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        test_tag_1: Tags = create_tag_obj(num=1, unique_color='#000')
+        assert RecipesTags.objects.all().count() == 0
+        recipe_tag = create_recipe_tag_obj(
+            recipe=test_recipe_1,
+            tag=test_tag_1)
+        assert RecipesTags.objects.all().count() == 1
+        assert recipe_tag.recipe == test_recipe_1
+        assert recipe_tag.tag == test_tag_1
+        return
+
+    def test_unique_constraint(self) -> None:
+        """Тестирует UniqueConstraint модели."""
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        test_tag_1: Tags = create_tag_obj(num=1, unique_color='#000')
+        assert RecipesTags.objects.all().count() == 0
+        create_recipe_tag_obj(recipe=test_recipe_1, tag=test_tag_1)
+        assert RecipesTags.objects.all().count() == 1
+        with pytest.raises(ValidationError) as err:
+            create_recipe_tag_obj(recipe=test_recipe_1, tag=test_tag_1)
+        assert str(err.value) == (
+            "{'__all__': [\'Связь моделей \"Рецепты\" и \"Теги\" "
+            "с такими значениями полей Рецепт и Тег уже существует.']}")
+        assert RecipesTags.objects.all().count() == 1
+
+    def test_meta(self) -> None:
+        """Тестирует мета-данные модели и полей.
+        Тестирует строковое представление модели."""
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        test_tag_1: Tags = create_tag_obj(num=1, unique_color='#000')
+        assert RecipesTags.objects.all().count() == 0
+        recipe_tag = create_recipe_tag_obj(
+            recipe=test_recipe_1,
+            tag=test_tag_1)
+        assert str(recipe_tag) == (
+            'test_name_1 - test_name_1')
+        assert recipe_tag._meta.ordering == ('recipe', 'tag')
+        assert recipe_tag._meta.verbose_name == (
+            'Связь моделей "Рецепты" и "Теги"')
+        assert recipe_tag._meta.verbose_name_plural == (
+            'Связи моделей "Рецепты" и "Теги"')
+        recipe = recipe_tag._meta.get_field('recipe')
+        assert recipe.remote_field.on_delete == CASCADE
+        assert recipe.remote_field.related_name == 'recipe_tag'
+        assert recipe.verbose_name == 'Рецепт'
+        tag = recipe_tag._meta.get_field('tag')
+        assert tag.remote_field.on_delete == CASCADE
+        assert tag.remote_field.related_name == 'tag_recipe'
+        assert tag.verbose_name == 'Тег'
         return
