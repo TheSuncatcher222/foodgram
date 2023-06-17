@@ -26,7 +26,7 @@ FAVORITES_VALID_OBJ = lambda user, recipe: (
         recipe=recipe))
 
 
-def create_ingredients_obj(num: int) -> Ingredients:
+def create_ingredient_obj(num: int) -> Ingredients:
     """Создает и возвращает объект модели "Ingredients"."""
     return Ingredients.objects.create(
         name=f'test_name_{num}',
@@ -43,11 +43,10 @@ RECIPES_TAGS_VALID_OBJ = lambda recipe, tag: (
         tag=tag))
 
 
-def create_recipes_obj(
-        num: int, user: User, image_code: bytes = IMAGE_BYTES) -> None:
+def create_recipe_obj(num: int, user: User) -> None:
     """Создает и возвращает объект модели "Recipes".
     Изображения сохраняются в отдельную субдиректорию медиа для тестов."""
-    image_file: ContentFile = ContentFile(image_code)
+    image_file: ContentFile = ContentFile(IMAGE_BYTES)
     uploaded_image: SimpleUploadedFile = SimpleUploadedFile(
         f'test_image_{num}.gif', image_file.read(), content_type='image/gif')
     recipe: Recipes = Recipes.objects.create(
@@ -57,6 +56,14 @@ def create_recipes_obj(
         name=f'test_name_{num}',
         text=f'test_text_{num}')
     return recipe
+
+
+def create_shopping_cart_obj(
+        num: int, recipe: Recipes, user: User) -> ShoppingCarts:
+    """Создает и возвращает объект модели "ShoppingCarts"."""
+    return ShoppingCarts.objects.create(
+        user=user,
+        cart_item=recipe)
 
 
 SHOPPING_CARTS_VALID_OBJ = lambda user, recipe: (
@@ -69,7 +76,7 @@ SUBSCRIPTIONS_VALID_OBJ = lambda subscriber, subscription_to: (
         subscription_to=subscription_to))
 
 
-def create_tags_obj(num: int, unique_color: str) -> Tags:
+def create_tag_obj(num: int, unique_color: str) -> Tags:
     """Создает и возвращает объект модели "Tags"."""
     return Tags.objects.create(
         color=unique_color,
@@ -130,7 +137,7 @@ class TestIngredientsModel():
     def test_valid_create(self) -> None:
         """Тестирует возможность создания объекта с валидными данными."""
         assert Ingredients.objects.all().count() == 0
-        ingredient: Ingredients = create_ingredients_obj(num=1)
+        ingredient: Ingredients = create_ingredient_obj(num=1)
         assert Ingredients.objects.all().count() == 1
         assert ingredient.name == 'test_name_1'
         assert ingredient.measurement_unit == 'батон'
@@ -184,9 +191,9 @@ class TestIngredientsModel():
 
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
-        create_ingredients_obj(num=1)
+        create_ingredient_obj(num=1)
         with pytest.raises(ValidationError) as err:
-            create_ingredients_obj(num=1)
+            create_ingredient_obj(num=1)
         assert str(err.value) == (
             "{'name': ['Ингредиент с таким Название уже существует.']}")
         return
@@ -194,7 +201,7 @@ class TestIngredientsModel():
     def test_meta(self) -> None:
         """Тестирует мета-данные модели и полей.
         Тестирует строковое представление модели."""
-        ingredient: Ingredients = create_ingredients_obj(num=1)
+        ingredient: Ingredients = create_ingredient_obj(num=1)
         assert str(ingredient) == 'test_name_1 (батон)'
         assert ingredient._meta.ordering == ('name', )
         assert ingredient._meta.verbose_name == 'ингредиент'
@@ -215,7 +222,7 @@ class TestTagsModel():
     def test_valid_create(self) -> None:
         """Тестирует возможность создания объекта с валидными данными."""
         assert Tags.objects.all().count() == 0
-        tag = create_tags_obj(num=1, unique_color='#000')
+        tag = create_tag_obj(num=1, unique_color='#000')
         assert Tags.objects.all().count() == 1
         assert tag.name == 'test_name_1'
         assert tag.color == '#000'
@@ -238,7 +245,7 @@ class TestTagsModel():
     def test_invalid_hex_color(self, hex_code, error_message) -> None:
         """Тестирует регулярное выражение для HEX цвета поля "color"."""""
         with pytest.raises(ValidationError) as err:
-            create_tags_obj(num=1, unique_color=hex_code)
+            create_tag_obj(num=1, unique_color=hex_code)
         assert str(err.value) == error_message
         return
 
@@ -305,9 +312,9 @@ class TestTagsModel():
 
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
-        create_tags_obj(num=1, unique_color='#000')
+        create_tag_obj(num=1, unique_color='#000')
         with pytest.raises(ValidationError) as err:
-            create_tags_obj(num=1, unique_color='#000')
+            create_tag_obj(num=1, unique_color='#000')
         assert str(err.value) == (
             "{'color': ['Тег с таким HEX цвет уже существует.'], "
             "'name': ['Тег с таким Название уже существует.'], "
@@ -317,7 +324,7 @@ class TestTagsModel():
     def test_meta(self) -> None:
         """Тестирует мета-данные модели и полей.
         Тестирует строковое представление модели."""
-        tag: Tags = create_tags_obj(num=1, unique_color='#000')
+        tag: Tags = create_tag_obj(num=1, unique_color='#000')
         assert str(tag) == 'test_name_1 (test_slug_1)'
         assert tag._meta.ordering == ('name', )
         assert tag._meta.verbose_name == 'Тег'
@@ -343,7 +350,7 @@ class TestRecipesModel():
         """Тестирует возможность создания объекта с валидными данными."""
         test_user = create_user_obj(num=1)
         assert Recipes.objects.all().count() == 0
-        recipe = create_recipes_obj(num=1, user=test_user)
+        recipe = create_recipe_obj(num=1, user=test_user)
         assert Recipes.objects.all().count() == 1
         assert recipe.author == test_user
         assert recipe.cooking_time == 1
@@ -425,9 +432,9 @@ class TestRecipesModel():
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
         test_user: User = create_user_obj(num=1)
-        create_recipes_obj(num=1, user=test_user)
+        create_recipe_obj(num=1, user=test_user)
         with pytest.raises(ValidationError) as err:
-            create_recipes_obj(num=1, user=test_user)
+            create_recipe_obj(num=1, user=test_user)
         assert str(err.value) == (
             "{'name': ['Рецепт с таким Название уже существует.']}")
         return
@@ -436,7 +443,7 @@ class TestRecipesModel():
         """Тестирует мета-данные модели и полей.
         Тестирует строковое представление модели."""
         test_user: User = create_user_obj(num=1)
-        recipe: Recipes = create_recipes_obj(num=1, user=test_user)
+        recipe: Recipes = create_recipe_obj(num=1, user=test_user)
         assert str(recipe) == 'test_name_1 (1 мин.)'
         assert recipe._meta.ordering == ('-id',)
         assert recipe._meta.verbose_name == 'Рецепт'
@@ -459,4 +466,42 @@ class TestRecipesModel():
         assert tags.verbose_name == 'Теги'
         text = recipe._meta.get_field('text')
         assert text.verbose_name == 'Описание'
+        return
+
+
+@pytest.mark.django_db
+class TestShoppingCartsModel():
+    """Производит тест модели "ShoppingCarts"."""
+
+    def test_valid_create(self) -> None:
+        """Тестирует возможность создания объекта с валидными данными."""
+        test_user: User = create_user_obj(num=1)
+        test_recipe: Recipes = create_recipe_obj(num=1, user=test_user)
+        assert ShoppingCarts.objects.all().count() == 0
+        recipe = create_shopping_cart_obj(
+            num=1, recipe=test_recipe, user=test_user)
+        assert ShoppingCarts.objects.all().count() == 1
+        assert recipe.user == test_user
+        assert recipe.cart_item == test_recipe
+        return
+
+    def test_meta(self) -> None:
+        """Тестирует мета-данные модели и полей.
+        Тестирует строковое представление модели."""
+        test_user: User = create_user_obj(num=1)
+        test_recipe: Recipes = create_recipe_obj(num=1, user=test_user)
+        shopping_cart: ShoppingCarts = create_shopping_cart_obj(
+            num=1, recipe=test_recipe, user=test_user)
+        assert str(shopping_cart) == 'test_username_1: "test_name_1 (1 мин.)"'
+        assert shopping_cart._meta.ordering == ('user', 'cart_item')
+        assert shopping_cart._meta.verbose_name == 'Список покупок'
+        assert shopping_cart._meta.verbose_name_plural == 'Списки покупок'
+        user = shopping_cart._meta.get_field('user')
+        assert user.remote_field.on_delete == CASCADE
+        assert user.remote_field.related_name == 'shopping_cart'
+        assert user.verbose_name == 'Корзина пользователя'
+        cart_item = shopping_cart._meta.get_field('cart_item')
+        assert cart_item.remote_field.on_delete == CASCADE
+        assert cart_item.remote_field.related_name == 'shopping_cart'
+        assert cart_item.verbose_name == 'Рецепт в корзине'
         return
