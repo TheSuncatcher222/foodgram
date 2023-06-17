@@ -28,10 +28,17 @@ def create_ingredient_obj(num: int) -> Ingredients:
         measurement_unit='батон')
 
 
-RECIPES_INGREDIENTS_VALID_OBJ = lambda ingredient, recipe: (
-    RecipesIngredients.objects.create(
+def create_recipe_ingredient_obj(
+        amount: float,
+        ingredient: Ingredients,
+        recipe: Recipes) -> RecipesIngredients:
+    """Создает и возвращает объект модели "RecipesIngredients"."""
+    return RecipesIngredients.objects.create(
+        amount=amount,
         ingredient=ingredient,
-        recipe=recipe))
+        recipe=recipe)
+
+
 RECIPES_TAGS_VALID_OBJ = lambda recipe, tag: (
     RecipesTags.objects.create(
         recipe=recipe,
@@ -564,7 +571,8 @@ class TestRecipesFavoritesUsersModel():
         assert recipe_favorite.recipe == test_recipe_1
         return
 
-    def test_unique_constraint(self):
+    def test_unique_constraint(self) -> None:
+        """Тестирует UniqueConstraint модели."""
         test_user_1: User = create_user_obj(num=1)
         test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
         assert RecipesFavoritesUsers.objects.all().count() == 0
@@ -597,5 +605,95 @@ class TestRecipesFavoritesUsersModel():
         assert recipe.remote_field.on_delete == CASCADE
         assert recipe.remote_field.related_name == (
             'recipe_favorite_user')
+        assert recipe.verbose_name == 'Рецепт'
+        return
+
+@pytest.mark.django_db
+class TestRecipesIngredientsModel():
+    """Производит тест модели "RecipesIngredients"."""
+
+    def test_valid_create(self) -> None:
+        """Тестирует возможность создания объекта с валидными данными."""
+        test_ingredient_1: Ingredients = create_ingredient_obj(num=1)
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        TEST_AMOUNT: float = 0.3
+        assert RecipesIngredients.objects.all().count() == 0
+        recipe_ingredient = create_recipe_ingredient_obj(
+            amount=TEST_AMOUNT,
+            ingredient=test_ingredient_1,
+            recipe=test_recipe_1)
+        assert RecipesIngredients.objects.all().count() == 1
+        assert recipe_ingredient.amount == TEST_AMOUNT
+        assert recipe_ingredient.ingredient == test_ingredient_1
+        assert recipe_ingredient.recipe == test_recipe_1
+        return
+
+    def test_invalid_amount(self) -> None:
+        """Тестирует создание объекта с невалидным значением поля "amount"."""
+        test_ingredient_1: Ingredients = create_ingredient_obj(num=1)
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        with pytest.raises(ValidationError) as err:
+            RecipesIngredients.objects.create(
+                amount='один',
+                ingredient=test_ingredient_1,
+                recipe=test_recipe_1)
+        assert str(err.value) == (
+            "{'amount': "
+            "['Значение “один” должно быть числом с плавающей точкой.']}")
+
+    def test_unique_constraint(self) -> None:
+        """Тестирует UniqueConstraint модели."""
+        test_ingredient_1: Ingredients = create_ingredient_obj(num=1)
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        TEST_AMOUNT: float = 0.3
+        assert RecipesIngredients.objects.all().count() == 0
+        create_recipe_ingredient_obj(
+            amount=TEST_AMOUNT,
+            ingredient=test_ingredient_1,
+            recipe=test_recipe_1)
+        assert RecipesIngredients.objects.all().count() == 1
+        with pytest.raises(ValidationError) as err:
+            create_recipe_ingredient_obj(
+                amount=TEST_AMOUNT,
+                ingredient=test_ingredient_1,
+                recipe=test_recipe_1)
+        assert str(err.value) == (
+            "{'__all__': [\'Связь моделей \"Рецепты\" и \"ингредиенты\" "
+            "с такими значениями полей Ингредиент и Рецепт уже существует.']}")
+        assert RecipesIngredients.objects.all().count() == 1
+
+    def test_meta(self) -> None:
+        """Тестирует мета-данные модели и полей.
+        Тестирует строковое представление модели."""
+        test_ingredient_1: Ingredients = create_ingredient_obj(num=1)
+        test_user_1: User = create_user_obj(num=1)
+        test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
+        TEST_AMOUNT: float = 0.3
+        assert RecipesIngredients.objects.all().count() == 0
+        recipe_ingredient = create_recipe_ingredient_obj(
+            amount=TEST_AMOUNT,
+            ingredient=test_ingredient_1,
+            recipe=test_recipe_1)
+        assert str(recipe_ingredient) == (
+            'test_name_1 - test_name_1')
+        assert recipe_ingredient._meta.ordering == ('recipe', 'ingredient')
+        assert recipe_ingredient._meta.verbose_name == (
+            'Связь моделей "Рецепты" и "ингредиенты"')
+        assert recipe_ingredient._meta.verbose_name_plural == (
+            'Связи моделей "Рецепты" и "ингредиенты"')
+        amount = recipe_ingredient._meta.get_field('amount')
+        assert amount.verbose_name == 'Количество'
+        ingredient = recipe_ingredient._meta.get_field('ingredient')
+        assert ingredient.remote_field.on_delete == CASCADE
+        assert ingredient.remote_field.related_name == (
+            'ingredient_recipe')
+        assert ingredient.verbose_name == 'Ингредиент'
+        recipe = recipe_ingredient._meta.get_field('recipe')
+        assert recipe.remote_field.on_delete == CASCADE
+        assert recipe.remote_field.related_name == (
+            'recipe_ingredient')
         assert recipe.verbose_name == 'Рецепт'
         return
