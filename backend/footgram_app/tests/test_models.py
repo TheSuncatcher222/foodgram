@@ -70,10 +70,14 @@ SHOPPING_CARTS_VALID_OBJ = lambda user, recipe: (
     ShoppingCarts.objects.create(
         user=user,
         cart_item=recipe))
-SUBSCRIPTIONS_VALID_OBJ = lambda subscriber, subscription_to: (
-    Subscriptions.objects.create(
+
+
+def create_subscription_obj(
+        subscriber: User, subscription_to: User) -> Subscriptions:
+    """Создает и возвращает объект модели "Subscriptions"."""
+    return Subscriptions.objects.create(
         subscriber=subscriber,
-        subscription_to=subscription_to))
+        subscription_to=subscription_to)
 
 
 def create_tag_obj(num: int, unique_color: str) -> Tags:
@@ -504,4 +508,44 @@ class TestShoppingCartsModel():
         assert cart_item.remote_field.on_delete == CASCADE
         assert cart_item.remote_field.related_name == 'shopping_cart'
         assert cart_item.verbose_name == 'Рецепт в корзине'
+        return
+
+
+@pytest.mark.django_db
+class TestSubscriptionsModel():
+    """Производит тест модели "Subscriptions"."""
+
+    def test_valid_create(self) -> None:
+        """Тестирует возможность создания объекта с валидными данными."""
+        test_user_1: User = create_user_obj(num=1)
+        test_user_2: User = create_user_obj(num=2)
+        assert Subscriptions.objects.all().count() == 0
+        subscription = create_subscription_obj(
+            subscriber=test_user_1, subscription_to=test_user_2)
+        assert Subscriptions.objects.all().count() == 1
+        assert subscription.subscriber == test_user_1
+        assert subscription.subscription_to == test_user_2
+        return
+
+    def test_meta(self) -> None:
+        """Тестирует мета-данные модели и полей.
+        Тестирует строковое представление модели."""
+        test_user_1: User = create_user_obj(num=1)
+        test_user_2: User = create_user_obj(num=2)
+        subscription = create_subscription_obj(
+            subscriber=test_user_1, subscription_to=test_user_2)
+        assert str(subscription) == (
+            'Подписка test_username_1 на test_username_2')
+        assert subscription._meta.ordering == ('-id', )
+        assert subscription._meta.verbose_name == 'Подписка'
+        assert subscription._meta.verbose_name_plural == 'Подписки на авторов'
+        subscriber = subscription._meta.get_field('subscriber')
+        assert subscriber.remote_field.on_delete == CASCADE
+        assert subscriber.remote_field.related_name == 'subscriber'
+        assert subscriber.verbose_name == 'Подписчик'
+        subscription_to = subscription._meta.get_field('subscription_to')
+        assert subscription_to.remote_field.on_delete == CASCADE
+        assert subscription_to.remote_field.related_name == (
+            'subscription_author')
+        assert subscription_to.verbose_name == 'Автор на которого подписка'
         return
