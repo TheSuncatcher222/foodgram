@@ -208,7 +208,7 @@ class RecipesSerializer(ModelSerializer):
 
 class RecipesFavoritesUsersSerializer(ModelSerializer):
     """Создает сериализатор для модели "Recipes" в случае, если происходит
-    добавление рецепта в избранное или удаление его оттуда."""
+    добавление рецепта в избранное или удаление оттуда."""
 
     class Meta:
         model = Recipes
@@ -227,7 +227,7 @@ class RecipesFavoritesUsersSerializer(ModelSerializer):
         if RecipesFavoritesUsers.objects.filter(
                 recipe=recipe, user=user).exists():
             raise ValidationError(
-                'Ошибка добавления в избранное. '
+                'Ошибка добавления. '
                 'Рецепт уже находится в избранном.')
         RecipesFavoritesUsers.objects.create(recipe=recipe, user=user)
         return
@@ -241,9 +241,52 @@ class RecipesFavoritesUsersSerializer(ModelSerializer):
         if not RecipesFavoritesUsers.objects.filter(
                 recipe=recipe, user=user).exists():
             raise ValidationError(
-                'Ошибка удаления из избранного. '
+                'Ошибка удаления. '
                 'Рецепта нет в избранном.')
         recipe_favorite: RecipesFavoritesUsers = get_object_or_404(
             RecipesFavoritesUsers, recipe=recipe_id, user=user)
+        recipe_favorite.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ShoppingCartsSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Recipes" в случае, если происходит
+    добавление рецепта в список покупок или удаление оттуда."""
+
+    class Meta:
+        model = Recipes
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time')
+
+    def create(self, serializer):
+        """Дополняет метод save() для записи в БД:
+            - добавляет запись в таблицу "ShoppingCarts"."""
+        recipe_id = self.kwargs['id']
+        recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
+        user: User = self.request.user
+        if ShoppingCarts.objects.filter(
+                cart_item=recipe, user=user).exists():
+            raise ValidationError(
+                'Ошибка добавления. '
+                'Рецепт уже находится в корзине.')
+        ShoppingCarts.objects.create(recipe=recipe, user=user)
+        return
+
+    def destroy(self, request, *args, **kwargs):
+        """Дополняет метод destroy() для удаления из БД:
+            - удаляет запись из таблицы "ShoppingCarts"."""
+        recipe_id: int = self.kwargs['pk']
+        recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
+        user: User = self.request.user
+        if not ShoppingCarts.objects.filter(
+                recipe=recipe, user=user).exists():
+            raise ValidationError(
+                'Ошибка удаления. '
+                'Рецепта нет в корзине.')
+        recipe_favorite: ShoppingCarts = get_object_or_404(
+            ShoppingCarts, recipe=recipe_id, user=user)
         recipe_favorite.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
