@@ -18,9 +18,11 @@ from django.contrib.auth.models import User
 from djoser.serializers import UserSerializer
 from re import sub
 from rest_framework.serializers import (
-    EmailField, CharField, SerializerMethodField, ValidationError)
+    ModelSerializer,
+    EmailField, CharField, SerializerMethodField,
+    ValidationError)
 
-from footgram_app.models import Subscriptions
+from footgram_app.models import Ingredients, Subscriptions
 
 USER_EMAIL_MAX_LEN: int = 254
 USER_FIRST_NAME_MAX_LEN: int = 150
@@ -104,3 +106,14 @@ class CustomUserSerializer(UserSerializer):
             raise ValidationError(
                 'Пользователь с таким именем уже существует.')
         return value
+
+
+class IngredientsSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Ingredients"."""
+
+    class Meta:
+        model = Ingredients
+        fields = (
+            'id',
+            'name',
+            'measurement_unit')
