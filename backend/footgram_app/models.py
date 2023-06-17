@@ -284,12 +284,12 @@ class Subscriptions(Model):
         User,
         on_delete=CASCADE,
         related_name='subscriber',
-        verbose_name='подписчик')
+        verbose_name='Подписчик')
     subscription_to = ForeignKey(
         User,
         on_delete=CASCADE,
         related_name='subscription_author',
-        verbose_name='автор на которого подписка')
+        verbose_name='Автор на которого подписка')
 
     class Meta:
         # Проверка на UniqueConstraint не может быть произведена,
