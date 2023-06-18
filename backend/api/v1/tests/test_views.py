@@ -3,7 +3,6 @@ import json
 import pytest
 from django.contrib.auth.models import User
 from rest_framework import status
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from api.v1.serializers import (
@@ -11,9 +10,12 @@ from api.v1.serializers import (
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
 from footgram_app.models import Subscriptions
 
+URL_AUTH: str = '/api/v1/auth/token/'
+URL_AUTH_LOGIN: str = f'{URL_AUTH}login/'
+URL_AUTH_LOGOUT: str = f'{URL_AUTH}logout/'
 URL_USERS: str = '/api/v1/users/'
-URL_USERS_ME: str = '/api/v1/users/me/'
-URL_USERS_SET_PASSWORD: str = '/api/v1/users/set_password/'
+URL_USERS_ME: str = f'{URL_USERS}me/'
+URL_USERS_SET_PASSWORD: str = f'{URL_USERS}set_password/'
 
 TEST_USERS_COUNT: int = 3
 
@@ -325,6 +327,7 @@ class TestCustomUserViewSet():
 
     # ToDo: разобраться, почему возникает ошибка в response:
     # {'current_password': ['Неправильный пароль.']}
+
     # def test_users_set_password(self):
     #     """Тест POST-запроса на страницу изменения пароля по эндпоинту
     #     "/api/users/set_password/" для авторизованного клиента."""
@@ -344,3 +347,25 @@ class TestCustomUserViewSet():
     #         content_type='application/json')
     #     content = json.loads(response.content)
     #     assert content == None
+
+    # ToDo: разобраться, почему возникает ошибка в response:
+    # {'non_field_errors':
+    # ['Невозможно войти с предоставленными учетными данными.']}
+
+    # def test_users_get_token(self, create_users):
+    #     """Тест POST-запроса на страницу получения токена по эндпоинту
+    #     "/api/auth/token/login/" для анонимного клиента."""
+    #     test_user: User = User.objects.get(id=1)
+    #     client = self.anon_client()
+    #     data: dict = {
+    #         'email': test_user.email,
+    #         'password': 'test_password_1'}
+    #     response = client.post(
+    #         URL_AUTH_LOGIN,
+    #         json.dumps(data),
+    #         content_type='application/json')
+    #     assert response.status_code == status.HTTP_200_OK
+    #     content = json.loads(response.content)
+    #     assert content == 1
+    #     assert isinstance(content['auth_token'], str)
+    #     assert len(content['auth_token'] > 0)
