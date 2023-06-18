@@ -109,17 +109,14 @@ class TestCustomUserViewSet():
         """Возвращает объект анонимного клиента."""
         return APIClient()
 
-    def users_get(self, client: APIClient, expected_data: dict) -> None:
+    def users_get(self, client: APIClient) -> dict:
         """Совершает GET-запрос к списку пользователей по эндпоинту
         "/api/v1/users/" от лица переданного клиента.
-        Проверяет ответ на соответствие ожидаемым данным
-        (не зависят от статуса клиента)."""
+        В случае успешного запроса возвращает ответ, приведенный к формату
+        данных Python."""
         response = client.get(USERS_URL)
         assert response.status_code == status.HTTP_200_OK
-        data: dict = json.loads(response.content)
-        assert len(data) == TEST_USERS_COUNT
-        assert data == expected_data
-        return
+        return json.loads(response.content)
 
     def users_post(
             self,
@@ -153,7 +150,10 @@ class TestCustomUserViewSet():
         """Тест GET-запроса списка пользователей по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента.
         Используется фикстура "create_users" для наполнения тестовой
-        БД пользователями."""
+        БД пользователями.
+        В классе используется пагинация. В рамках теста производится анализ
+        содержимого "results". Тест непосредственно пагинации производится
+        в другой функции."""
         expected_data: dict[str, any] = [
             {'email': 'test_user_1@email.com',
              'id': 1,
@@ -173,7 +173,10 @@ class TestCustomUserViewSet():
              'first_name': 'test_user_3_first_name',
              'last_name': 'test_user_3_last_name',
              'is_subscribed': False}]
-        self.users_get(client=client_func(self), expected_data=expected_data)
+        data: dict = self.users_get(client=client_func(self))
+        results_pagination: dict = data['results']
+        assert len(results_pagination) == TEST_USERS_COUNT
+        assert results_pagination == expected_data
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
