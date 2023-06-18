@@ -9,6 +9,7 @@ from api.v1.serializers import (
     USER_EMAIL_MAX_LEN, USER_FIRST_NAME_MAX_LEN, USER_PASSWORD_MAX_LEN,
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
 from footgram_app.models import Subscriptions
+from footgram_app.tests.test_models import create_user_obj
 
 URL_AUTH: str = '/api/v1/auth/token/'
 URL_AUTH_LOGIN: str = f'{URL_AUTH}login/'
@@ -24,12 +25,7 @@ TEST_USERS_COUNT: int = 3
 def create_users() -> None:
     """Фикстура для наполнения БД заданным числом пользователей."""
     for i in range(1, TEST_USERS_COUNT+1):
-        User.objects.create(
-            email=f'test_user_{i}@email.com',
-            username=f'test_user_{i}',
-            first_name=f'test_user_{i}_first_name',
-            last_name=f'test_user_{i}_last_name',
-            password=f'test_password_{i}')
+        create_user_obj(num=i)
     return
 
 
@@ -93,11 +89,11 @@ class TestCustomUserViewSet():
             'Использование "!", "1", "2", "3", "4", "5", "😊" в имени '
             'пользователя запрещено.']}
     NON_VALID_POST_DATA_EXISTED = {
-        'email': 'test_user_1@email.com',
-        'username': 'test_user_1',
-        'first_name': 'test_user_1_first_name',
-        'last_name': 'test_user_1_last_name',
-        'password': 'test_user_1_password'}
+        'email': 'test_user_email_1@email.com',
+        'username': 'test_user_username_1',
+        'first_name': 'test_user_first_name_1',
+        'last_name': 'test_user_last_name_1',
+        'password': 'test_user_password_1'}
     NON_VALID_POST_DATA_EXISTED_EXP = {
         'email': ['Пользователь с такой электронной почтой уже существует.'],
         'username': ['Пользователь с таким именем уже существует.']}
@@ -159,23 +155,23 @@ class TestCustomUserViewSet():
         содержимого "results". Тест непосредственно пагинации производится
         в другой функции."""
         expected_data: dict[str, any] = [
-            {'email': 'test_user_1@email.com',
+            {'email': 'test_user_email_1@email.com',
              'id': 1,
-             'username': 'test_user_1',
-             'first_name': 'test_user_1_first_name',
-             'last_name': 'test_user_1_last_name',
+             'username': 'test_user_username_1',
+             'first_name': 'test_user_first_name_1',
+             'last_name': 'test_user_last_name_1',
              'is_subscribed': False},
-            {'email': 'test_user_2@email.com',
+            {'email': 'test_user_email_2@email.com',
              'id': 2,
-             'username': 'test_user_2',
-             'first_name': 'test_user_2_first_name',
-             'last_name': 'test_user_2_last_name',
+             'username': 'test_user_username_2',
+             'first_name': 'test_user_first_name_2',
+             'last_name': 'test_user_last_name_2',
              'is_subscribed': False},
-            {'email': 'test_user_3@email.com',
+            {'email': 'test_user_email_3@email.com',
              'id': 3,
-             'username': 'test_user_3',
-             'first_name': 'test_user_3_first_name',
-             'last_name': 'test_user_3_last_name',
+             'username': 'test_user_username_3',
+             'first_name': 'test_user_first_name_3',
+             'last_name': 'test_user_last_name_3',
              'is_subscribed': False}]
         data: dict = self.users_get(client=client_func(self))
         results_pagination: dict = data['results']
@@ -247,11 +243,11 @@ class TestCustomUserViewSet():
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == {
-            'email': 'test_user_1@email.com',
+            'email': 'test_user_email_1@email.com',
             'id': 1,
-            'username': 'test_user_1',
-            'first_name': 'test_user_1_first_name',
-            'last_name': 'test_user_1_last_name',
+            'username': 'test_user_username_1',
+            'first_name': 'test_user_first_name_1',
+            'last_name': 'test_user_last_name_1',
             'is_subscribed': False}
         return
 
@@ -272,11 +268,11 @@ class TestCustomUserViewSet():
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == {
-            'email': 'test_user_2@email.com',
+            'email': 'test_user_email_2@email.com',
             'id': 2,
-            'username': 'test_user_2',
-            'first_name': 'test_user_2_first_name',
-            'last_name': 'test_user_2_last_name',
+            'username': 'test_user_username_2',
+            'first_name': 'test_user_first_name_2',
+            'last_name': 'test_user_last_name_2',
             'is_subscribed': True}
         return
 
@@ -300,11 +296,11 @@ class TestCustomUserViewSet():
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == {
-            'email': 'test_user_1@email.com',
+            'email': 'test_user_email_1@email.com',
             'id': 1,
-            'username': 'test_user_1',
-            'first_name': 'test_user_1_first_name',
-            'last_name': 'test_user_1_last_name',
+            'username': 'test_user_username_1',
+            'first_name': 'test_user_first_name_1',
+            'last_name': 'test_user_last_name_1',
             'is_subscribed': False}
 
     @pytest.mark.parametrize(
