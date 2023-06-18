@@ -10,7 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import CASCADE
 
 from footgram_app.models import (
-    Ingredients, Recipes, RecipesFavoritesUsers, RecipesIngredients,
+    Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
     RecipesTags, ShoppingCarts, Subscriptions, Tags)
 
 IMAGE_BYTES: bytes = (
@@ -66,9 +66,9 @@ def create_recipe_obj(num: int, user: User) -> None:
 
 
 def create_recipe_favorite_obj(
-        recipe: Recipes, user: User) -> RecipesFavoritesUsers:
+        recipe: Recipes, user: User) -> RecipesFavorites:
     """Создает и возвращает объект модели "Ingredients"."""
-    return RecipesFavoritesUsers.objects.create(
+    return RecipesFavorites.objects.create(
         recipe=recipe,
         user=user)
 
@@ -571,17 +571,17 @@ class TestSubscriptionsModel():
 
 
 @pytest.mark.django_db
-class TestRecipesFavoritesUsersModel():
-    """Производит тест модели "RecipesFavoritesUsers"."""
+class TestRecipesFavoritesModel():
+    """Производит тест модели "RecipesFavorites"."""
 
     def test_valid_create(self) -> None:
         """Тестирует возможность создания объекта с валидными данными."""
         test_user_1: User = create_user_obj(num=1)
         test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
-        assert RecipesFavoritesUsers.objects.all().count() == 0
+        assert RecipesFavorites.objects.all().count() == 0
         recipe_favorite = create_recipe_favorite_obj(
             recipe=test_recipe_1, user=test_user_1)
-        assert RecipesFavoritesUsers.objects.all().count() == 1
+        assert RecipesFavorites.objects.all().count() == 1
         assert recipe_favorite.user == test_user_1
         assert recipe_favorite.recipe == test_recipe_1
         return
@@ -590,15 +590,15 @@ class TestRecipesFavoritesUsersModel():
         """Тестирует UniqueConstraint модели."""
         test_user_1: User = create_user_obj(num=1)
         test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
-        assert RecipesFavoritesUsers.objects.all().count() == 0
+        assert RecipesFavorites.objects.all().count() == 0
         create_recipe_favorite_obj(recipe=test_recipe_1, user=test_user_1)
-        assert RecipesFavoritesUsers.objects.all().count() == 1
+        assert RecipesFavorites.objects.all().count() == 1
         with pytest.raises(ValidationError) as err:
             create_recipe_favorite_obj(recipe=test_recipe_1, user=test_user_1)
         assert str(err.value) == (
             "{'__all__': ['Избранный рецепт с такими значениями полей "
             "Пользователь и Рецепт уже существует.']}")
-        assert RecipesFavoritesUsers.objects.all().count() == 1
+        assert RecipesFavorites.objects.all().count() == 1
         return
 
     def test_meta(self) -> None:

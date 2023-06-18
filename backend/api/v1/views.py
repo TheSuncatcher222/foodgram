@@ -5,8 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from api.v1.serializers import CustomUserSerializer, TagsSerializer
-from footgram_app.models import Tags
+from api.v1.serializers import (
+    CustomUserSerializer, TagsSerializer, RecipesFavoritesSerializer)
+from footgram_app.models import Tags, RecipesFavorites
+
 
 class CustomUserViewSet(ModelViewSet):
     """

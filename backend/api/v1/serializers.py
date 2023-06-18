@@ -25,7 +25,7 @@ from rest_framework.serializers import (
     EmailField, CharField, SerializerMethodField,
     ValidationError)
 from footgram_app.models import (
-    Ingredients, Recipes, RecipesFavoritesUsers, RecipesIngredients,
+    Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
     RecipesTags, ShoppingCarts, Subscriptions, Tags)
 
 USER_EMAIL_MAX_LEN: int = 254
@@ -186,7 +186,7 @@ class RecipesSerializer(ModelSerializer):
         """Показывает наличие рецепта в избранном пользователя в поле
         'is_subscribed'. Возвращает True, если рецепт в избранном,
         False - если нет."""
-        return RecipesFavoritesUsers.objects.filter(
+        return RecipesFavorites.objects.filter(
             user=self.context['request'].user,
             recipe=obj).exists()
 
@@ -206,7 +206,7 @@ class RecipesSerializer(ModelSerializer):
     #     return
 
 
-class RecipesFavoritesUsersSerializer(ModelSerializer):
+class RecipesFavoritesSerializer(ModelSerializer):
     """Создает сериализатор для модели "Recipes" в случае, если происходит
     добавление рецепта в избранное или удаление оттуда."""
 
@@ -220,31 +220,31 @@ class RecipesFavoritesUsersSerializer(ModelSerializer):
 
     def create(self, serializer):
         """Дополняет метод save() для записи в БД:
-            - добавляет запись в таблицу "RecipesFavoritesUsers"."""
+            - добавляет запись в таблицу "RecipesFavorites"."""
         recipe_id = self.kwargs['id']
         recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
         user: User = self.request.user
-        if RecipesFavoritesUsers.objects.filter(
+        if RecipesFavorites.objects.filter(
                 recipe=recipe, user=user).exists():
             raise ValidationError(
                 'Ошибка добавления. '
                 'Рецепт уже находится в избранном.')
-        RecipesFavoritesUsers.objects.create(recipe=recipe, user=user)
+        RecipesFavorites.objects.create(recipe=recipe, user=user)
         return
 
     def destroy(self, request, *args, **kwargs):
         """Дополняет метод destroy() для удаления из БД:
-            - удаляет запись из таблицы "RecipesFavoritesUsers"."""
+            - удаляет запись из таблицы "RecipesFavorites"."""
         recipe_id: int = self.kwargs['pk']
         recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
         user: User = self.request.user
-        if not RecipesFavoritesUsers.objects.filter(
+        if not RecipesFavorites.objects.filter(
                 recipe=recipe, user=user).exists():
             raise ValidationError(
                 'Ошибка удаления. '
                 'Рецепта нет в избранном.')
-        recipe_favorite: RecipesFavoritesUsers = get_object_or_404(
-            RecipesFavoritesUsers, recipe=recipe_id, user=user)
+        recipe_favorite: RecipesFavorites = get_object_or_404(
+            RecipesFavorites, recipe=recipe_id, user=user)
         recipe_favorite.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

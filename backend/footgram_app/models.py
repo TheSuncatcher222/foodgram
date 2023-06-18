@@ -4,7 +4,7 @@
 Классы-модели:
     - Ingredients
     - Recipes
-    - RecipesFavoritesUsers
+    - RecipesFavorites
     - RecipesIngredients
     - RecipesTags
     - ShoppingCarts
@@ -223,7 +223,7 @@ class Recipes(Model):
         super().save(*args, **kwargs)
 
 
-class RecipesFavoritesUsers(Model):
+class RecipesFavorites(Model):
     """
     Класс для представления избранных рецептов.
 
