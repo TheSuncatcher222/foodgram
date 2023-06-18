@@ -12,7 +12,7 @@ class IsAuthorOrAdminOrReadOnly(BasePermission):
         - GET: разрешено всем;
         - PATCH: разрешено автору рецепта;
         - POST: разрешено авторизованным пользователям;
-        - PUT: запрещено всем.
+        - PUT: разрешено автору рецепта.
     """
 
     def has_permission(self, request: Request, view) -> bool:
@@ -29,14 +29,12 @@ class IsAuthorOrAdminOrReadOnly(BasePermission):
         Устанавливает права доступа к объекту модели:
             - DELETE: разрешено автору рецепта или администратору;
             - PATCH: разрешено автору рецепта;
-            - PUT: запрещено всем.
+            - PUT: разрешено автору рецепта.
         """
         if request.method == 'DELETE':
             return self.is_author_or_admin(request, view, obj)
-        elif request.method == 'PATCH':
+        elif request.method in ('PATCH', 'PUT'):
             return self.is_author(request, view, obj)
-        elif request.method == 'PUT':
-            return False
         return True
 
     def is_author_or_admin(
