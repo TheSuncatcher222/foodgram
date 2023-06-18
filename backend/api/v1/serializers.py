@@ -70,6 +70,12 @@ class CustomUserSerializer(UserSerializer):
             'last_name': {'required': True},
             'password': {'required': True}}
 
+    def create(self, validated_data):
+        """Переопределяет метод сохранения данных: для сохранения объекта
+        используется метод "create_user()"."""
+        user: User = User.objects.create_user(**validated_data)
+        return user
+
     def get_is_subscribed(self, obj):
         """Показывает статус подписки пользователя в поле 'is_subscribed'.
         Возвращает True, если пользователь имеет подписку, False - если не
