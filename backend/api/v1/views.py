@@ -23,6 +23,15 @@ class CustomUserViewSet(ModelViewSet):
     serializer_class = CustomUserSerializer
     queryset = User.objects.all()
 
+    def get_queryset(self):
+        """Обновляет метод передачи объектов модели в сериализатор:
+            - устанавливает сортировку объектов по полю "id"
+              (используется встроенная модель "User", в которой явным образом
+              не задан мета-параметр "ordering")."""
+        queryset = super().get_queryset()
+        queryset = queryset.order_by('id')
+        return queryset
+
     @action(
         detail=False,
         methods=('get',),
