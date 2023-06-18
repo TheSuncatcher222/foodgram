@@ -2,7 +2,7 @@ import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from footgram_app.tests.test_models import create_user_obj
+from footgram_app.tests.test_models import create_tag_obj, create_user_obj
 
 URL_UNAVALIABLE_STATUSES: list = [
     status.HTTP_301_MOVED_PERMANENTLY,
@@ -42,4 +42,13 @@ class TestEndpointAvailability():
             - api/v1/users/set_password/."""
         create_user_obj(num=1)
         response = self.client().get(f'/api/v1/users/{url}')
+        assert response.status_code not in URL_UNAVALIABLE_STATUSES
+
+    @pytest.mark.parametrize('url', ['', '1/'])
+    def test_tags_endpoint(self, url):
+        """Тест доступности эндпоинтов:
+            - api/v1/tags/;
+            - api/v1/tags/{pk}/."""
+        create_tag_obj(num=1, unique_color='#000')
+        response = self.client().get(f'/api/v1/tags/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
