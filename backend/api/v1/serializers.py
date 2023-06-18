@@ -143,7 +143,6 @@ class RecipesSerializer(ModelSerializer):
     ingredients = IngredientsSerializer(many=True)
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
-    is_subscribed = SerializerMethodField()
     tags = TagsSerializer(many=True)
 
     class Meta:
@@ -185,18 +184,20 @@ class RecipesSerializer(ModelSerializer):
     def get_is_favorited(self, obj):
         """Показывает наличие рецепта в избранном пользователя в поле
         'is_subscribed'. Возвращает True, если рецепт в избранном,
-        False - если нет."""
-        return RecipesFavorites.objects.filter(
-            user=self.context['request'].user,
-            recipe=obj).exists()
+        False - если нет, или пользователь не авторизован.."""
+        user: User = self.context['request'].user
+        if user.is_anonymous:
+            return False
+        return RecipesFavorites.objects.filter(user=user, recipe=obj).exists()
 
     def get_is_in_shopping_cart(self, obj):
         """Показывает наличие рецепта в корзине пользователя в поле
         'is_in_shopping_cart'. Возвращает True, если рецепт в корзине,
-        False - если нет."""
-        return ShoppingCarts.objects.filter(
-            user=self.context['request'].user,
-            cart_item=obj).exists()
+        False - если нет, или пользователь не авторизован.."""
+        user: User = self.context['request'].user
+        if user.is_anonymous:
+            return False
+        return ShoppingCarts.objects.filter(user=user, cart_item=obj).exists()
 
     # ToDo: проверить необходимость кода:
     # def perform_create(self, serializer):
