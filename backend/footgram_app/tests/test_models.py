@@ -88,10 +88,14 @@ def create_subscription_obj(
         subscription_to=subscription_to)
 
 
-def create_tag_obj(num: int, unique_color: str) -> Tags:
+def create_tag_obj(num: int, unique_color: str = 'NoData') -> Tags:
     """Создает и возвращает объект модели "Tags"."""
+    if unique_color == 'NoData':
+        color: str = f"#{'0'*(6-len(str(num)))}{num}"
+    else:
+        color: str = unique_color
     return Tags.objects.create(
-        color=unique_color,
+        color=color,
         name=f'test_tag_name_{num}',
         slug=f'test_tag_slug_{num}')
 
