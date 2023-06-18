@@ -9,16 +9,18 @@ from api.v1.serializers import (
     USER_EMAIL_MAX_LEN, USER_FIRST_NAME_MAX_LEN, USER_PASSWORD_MAX_LEN,
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
 from footgram_app.models import Subscriptions
-from footgram_app.tests.test_models import create_user_obj
+from footgram_app.tests.test_models import create_tag_obj, create_user_obj
 
-URL_AUTH: str = '/api/v1/auth/token/'
+URL_API_V1 = '/api/v1/'
+URL_AUTH: str = f'{URL_API_V1}auth/token/'
 URL_AUTH_LOGIN: str = f'{URL_AUTH}login/'
 URL_AUTH_LOGOUT: str = f'{URL_AUTH}logout/'
-URL_USERS: str = '/api/v1/users/'
+URL_TAGS: str = f'{URL_API_V1}tags/'
+URL_USERS: str = f'{URL_API_V1}users/'
 URL_USERS_ME: str = f'{URL_USERS}me/'
 URL_USERS_SET_PASSWORD: str = f'{URL_USERS}set_password/'
 
-TEST_USERS_COUNT: int = 3
+TEST_FIXTURES_OBJ_COUNT: int = 3
 
 
 def anon_client() -> APIClient:
@@ -35,9 +37,17 @@ def auth_client() -> APIClient:
 
 
 @pytest.fixture()
+def create_tags() -> None:
+    """Фикстура для наполнения БД заданным числом пользователей."""
+    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+        create_tag_obj(num=i)
+    return
+
+
+@pytest.fixture()
 def create_users() -> None:
     """Фикстура для наполнения БД заданным числом пользователей."""
-    for i in range(1, TEST_USERS_COUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
         create_user_obj(num=i)
     return
 
@@ -138,16 +148,6 @@ class TestCustomUserViewSet():
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_users_delete_not_allowed(self, client_func):
-        """Тест DELETE-запроса на удаление пользователя по эндпоинту
-        "/api/v1/users/" для анонимного и авторизированного клиента."""
-        client: APIClient = client_func()
-        response = client.delete(
-            URL_USERS, json.dumps({}), content_type='application/json')
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-        return
-
-    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_users_get(self, client_func, create_users) -> None:
         """Тест GET-запроса списка пользователей по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента.
@@ -177,17 +177,19 @@ class TestCustomUserViewSet():
              'is_subscribed': False}]
         data: dict = self.users_get(client=client_func())
         results_pagination: dict = data['results']
-        assert len(results_pagination) == TEST_USERS_COUNT
+        assert len(results_pagination) == TEST_FIXTURES_OBJ_COUNT
         assert results_pagination == expected_data
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_users_patch_not_allowed(self, client_func) -> None:
-        """Тест PATCH-запроса на обновления пользователя по эндпоинту
-        "/api/v1/users/" для анонимного и авторизированного клиента."""
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'put'])
+    def test_users_not_allowed_methods(self, client_func, method):
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/":
+            - DELETE;
+            - PATCH;
+            - PUT."""
         client: APIClient = client_func()
-        response = client.patch(
-            URL_USERS, json.dumps({}), content_type='application/json')
+        response = getattr(client, method)(URL_TAGS)
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
@@ -221,17 +223,7 @@ class TestCustomUserViewSet():
             data=data,
             expected_data=expected_data,
             expected_status=status.HTTP_400_BAD_REQUEST,
-            expected_users_count=TEST_USERS_COUNT)
-        return
-
-    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_users_put_not_allowed(self, client_func) -> None:
-        """Тест PUT-запроса на замену пользователя по эндпоинту
-        "/api/v1/users/" для анонимного и авторизированного клиента."""
-        client: APIClient = client_func()
-        response = client.put(
-            URL_USERS, json.dumps({}), content_type='application/json')
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+            expected_users_count=TEST_FIXTURES_OBJ_COUNT)
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
@@ -367,3 +359,68 @@ class TestCustomUserViewSet():
     #     assert content == 1
     #     assert isinstance(content['auth_token'], str)
     #     assert len(content['auth_token'] > 0)
+
+
+@pytest.mark.django_db
+class TestTagsViewSet():
+    """Производит тест вью-сета "TagsViewSet"."""
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_tags_get(self, client_func, create_tags) -> None:
+        """Тест GET-запроса списка тегов по эндпоинту "/api/v1/tags/"
+        для анонимного и авторизированного клиента.
+        Используется фикстура "create_tags" для наполнения тестовой
+        БД тегами.
+        В классе используется пагинация. В рамках теста производится анализ
+        содержимого "results". Тест непосредственно пагинации производится
+        в другой функции."""
+        expected_data: dict[str, any] = [
+            {'id': 1,
+             'name': 'test_tag_name_1',
+             'color': '#000001',
+             'slug': 'test_tag_slug_1'},
+            {'id': 2,
+             'name': 'test_tag_name_2',
+             'color': '#000002',
+             'slug': 'test_tag_slug_2'},
+            {'id': 3,
+             'name': 'test_tag_name_3',
+             'color': '#000003',
+             'slug': 'test_tag_slug_3'}]
+        client = client_func()
+        response = client.get(URL_TAGS)
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        results_pagination: dict = data['results']
+        assert results_pagination == expected_data
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_tags_get_pk(self, client_func, create_tags) -> None:
+        """Тест GET-запроса на тег по эндпоинту "/api/v1/users/{pk}/"
+        для анонимного и авторизированного клиента.
+        Используется фикстура "create_tags" для наполнения тестовой
+        БД тегами."""
+        client = client_func()
+        response = client.get(f'{URL_TAGS}1/')
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        assert data == {
+            'id': 1,
+            'name': 'test_tag_name_1',
+            'color': '#000001',
+            'slug': 'test_tag_slug_1'}
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
+    def test_tags_not_allowed_methods(self, client_func, method):
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/tags/":
+            - DELETE;
+            - PATCH;
+            - POST;
+            - PUT."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(URL_TAGS)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        return
