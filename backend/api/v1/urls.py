@@ -2,10 +2,18 @@ from django.urls import include, path
 from djoser.views import TokenCreateView, TokenDestroyView, UserViewSet
 from rest_framework.routers import DefaultRouter
 
-from api.v1.views import CustomUserViewSet
+from api.v1.views import CustomUserViewSet, TagsViewSet
 
+roots: list[dict] = [
+     {'path': r'users',
+      'viewset': CustomUserViewSet,
+      'basename': 'users'},
+     {'path': r'tags',
+      'viewset': TagsViewSet,
+      'basename': 'tags'}]
 router = DefaultRouter()
-router.register(r'users', CustomUserViewSet, basename='users')
+for root in roots:
+    router.register(root['path'], root['viewset'], basename=root['basename'])
 
 urlpatterns = [
     path('auth/token/login/',
