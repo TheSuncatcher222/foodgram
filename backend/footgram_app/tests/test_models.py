@@ -28,7 +28,7 @@ TEST_OBJECTS_COUNT: int = 2
 def create_ingredient_obj(num: int) -> Ingredients:
     """Создает и возвращает объект модели "Ingredients"."""
     return Ingredients.objects.create(
-        name=f'test_name_{num}',
+        name=f'test_ingredient_name_{num}',
         measurement_unit='батон')
 
 
@@ -60,8 +60,8 @@ def create_recipe_obj(num: int, user: User) -> None:
         author=user,
         cooking_time=num,
         image=uploaded_image,
-        name=f'test_name_{num}',
-        text=f'test_text_{num}')
+        name=f'test_recipe_name_{num}',
+        text=f'test_recipe_text_{num}')
     return recipe
 
 
@@ -73,8 +73,7 @@ def create_recipe_favorite_obj(
         user=user)
 
 
-def create_shopping_cart_obj(
-        num: int, recipe: Recipes, user: User) -> ShoppingCarts:
+def create_shopping_cart_obj(recipe: Recipes, user: User) -> ShoppingCarts:
     """Создает и возвращает объект модели "ShoppingCarts"."""
     return ShoppingCarts.objects.create(
         user=user,
@@ -93,17 +92,17 @@ def create_tag_obj(num: int, unique_color: str) -> Tags:
     """Создает и возвращает объект модели "Tags"."""
     return Tags.objects.create(
         color=unique_color,
-        name=f'test_name_{num}',
-        slug=f'test_slug_{num}')
+        name=f'test_tag_name_{num}',
+        slug=f'test_tag_slug_{num}')
 
 
 def create_user_obj(num: int) -> User:
     return User.objects.create(
-        email=f'test_email_{num}@email.com',
-        username=f'test_username_{num}',
-        first_name=f'test_first_name_{num}',
-        last_name=f'test_last_name_{num}',
-        password=f'test_password_{num}')
+        email=f'test_user_email_{num}@email.com',
+        username=f'test_user_username_{num}',
+        first_name=f'test_user_first_name_{num}',
+        last_name=f'test_user_last_name_{num}',
+        password=f'test_user_password_{num}')
 
 
 @pytest.fixture(autouse=True)
@@ -152,7 +151,7 @@ class TestIngredientsModel():
         assert Ingredients.objects.all().count() == 0
         ingredient: Ingredients = create_ingredient_obj(num=1)
         assert Ingredients.objects.all().count() == 1
-        assert ingredient.name == 'test_name_1'
+        assert ingredient.name == 'test_ingredient_name_1'
         assert ingredient.measurement_unit == 'батон'
         return
 
@@ -217,7 +216,7 @@ class TestIngredientsModel():
         """Тестирует мета-данные модели и полей.
         Тестирует строковое представление модели."""
         ingredient: Ingredients = create_ingredient_obj(num=1)
-        assert str(ingredient) == 'test_name_1 (батон)'
+        assert str(ingredient) == 'test_ingredient_name_1 (батон)'
         assert ingredient._meta.ordering == ('name', )
         assert ingredient._meta.verbose_name == 'ингредиент'
         assert ingredient._meta.verbose_name_plural == 'ингредиенты'
@@ -239,9 +238,9 @@ class TestTagsModel():
         assert Tags.objects.all().count() == 0
         tag = create_tag_obj(num=1, unique_color='#000')
         assert Tags.objects.all().count() == 1
-        assert tag.name == 'test_name_1'
+        assert tag.name == 'test_tag_name_1'
         assert tag.color == '#000'
-        assert tag.slug == 'test_slug_1'
+        assert tag.slug == 'test_tag_slug_1'
         return
 
     @pytest.mark.parametrize(
@@ -342,7 +341,7 @@ class TestTagsModel():
         """Тестирует мета-данные модели и полей.
         Тестирует строковое представление модели."""
         tag: Tags = create_tag_obj(num=1, unique_color='#000')
-        assert str(tag) == 'test_name_1 (test_slug_1)'
+        assert str(tag) == 'test_tag_name_1 (test_tag_slug_1)'
         assert tag._meta.ordering == ('name', )
         assert tag._meta.verbose_name == 'Тег'
         assert tag._meta.verbose_name_plural == 'Теги'
@@ -372,8 +371,8 @@ class TestRecipesModel():
         assert recipe.author == test_user
         assert recipe.cooking_time == 1
         assert recipe.image.read() == IMAGE_BYTES
-        assert recipe.name == 'test_name_1'
-        assert recipe.text == 'test_text_1'
+        assert recipe.name == 'test_recipe_name_1'
+        assert recipe.text == 'test_recipe_text_1'
         return
 
     def test_invalid_cooking_time(self) -> None:
@@ -385,8 +384,8 @@ class TestRecipesModel():
             Recipes.objects.create(
                 author=test_user,
                 cooking_time=0,
-                name='test_name',
-                text='test_text')
+                name='test_recipe_name',
+                text='test_recipe_text')
         assert str(err.value) == (
             "{'cooking_time': ['Убедитесь, что это значение больше либо "
             "равно 1.'], "
@@ -403,7 +402,7 @@ class TestRecipesModel():
                 author=test_user,
                 cooking_time=1,
                 name=f'{"a"*129}',
-                text='test_text')
+                text='test_recipe_text')
         assert str(err.value) == (
             "{'image': ['Это поле не может быть пустым.'], "
             "'name': ['Убедитесь, что это значение содержит не более 128 "
@@ -463,7 +462,7 @@ class TestRecipesModel():
         Тестирует строковое представление модели."""
         test_user: User = create_user_obj(num=1)
         recipe: Recipes = create_recipe_obj(num=1, user=test_user)
-        assert str(recipe) == 'test_name_1 (1 мин.)'
+        assert str(recipe) == 'test_recipe_name_1 (1 мин.)'
         assert recipe._meta.ordering == ('-id',)
         assert recipe._meta.verbose_name == 'Рецепт'
         assert recipe._meta.verbose_name_plural == 'Рецепты'
@@ -497,11 +496,11 @@ class TestShoppingCartsModel():
         test_user: User = create_user_obj(num=1)
         test_recipe: Recipes = create_recipe_obj(num=1, user=test_user)
         assert ShoppingCarts.objects.all().count() == 0
-        recipe = create_shopping_cart_obj(
-            num=1, recipe=test_recipe, user=test_user)
+        shopping_cart = create_shopping_cart_obj(
+            recipe=test_recipe, user=test_user)
         assert ShoppingCarts.objects.all().count() == 1
-        assert recipe.user == test_user
-        assert recipe.cart_item == test_recipe
+        assert shopping_cart.user == test_user
+        assert shopping_cart.cart_item == test_recipe
         return
 
     def test_meta(self) -> None:
@@ -510,8 +509,9 @@ class TestShoppingCartsModel():
         test_user: User = create_user_obj(num=1)
         test_recipe: Recipes = create_recipe_obj(num=1, user=test_user)
         shopping_cart: ShoppingCarts = create_shopping_cart_obj(
-            num=1, recipe=test_recipe, user=test_user)
-        assert str(shopping_cart) == 'test_username_1: "test_name_1 (1 мин.)"'
+            recipe=test_recipe, user=test_user)
+        assert str(shopping_cart) == (
+            'test_user_username_1: "test_recipe_name_1 (1 мин.)"')
         assert shopping_cart._meta.ordering == ('user', 'cart_item')
         assert shopping_cart._meta.verbose_name == 'Список покупок'
         assert shopping_cart._meta.verbose_name_plural == 'Списки покупок'
@@ -550,7 +550,7 @@ class TestSubscriptionsModel():
         subscription = create_subscription_obj(
             subscriber=test_user_1, subscription_to=test_user_2)
         assert str(subscription) == (
-            'Подписка test_username_1 на test_username_2')
+            'Подписка test_user_username_1 на test_user_username_2')
         assert subscription._meta.ordering == ('-id', )
         assert subscription._meta.verbose_name == 'Подписка'
         assert subscription._meta.verbose_name_plural == 'Подписки на авторов'
@@ -605,7 +605,7 @@ class TestRecipesFavoritesUsersModel():
         recipe_favorite = create_recipe_favorite_obj(
             recipe=test_recipe_1, user=test_user_1)
         assert str(recipe_favorite) == (
-            'test_username_1: "test_name_1 (1 мин.)"')
+            'test_user_username_1: "test_recipe_name_1 (1 мин.)"')
         assert recipe_favorite._meta.ordering == ('-id', )
         assert recipe_favorite._meta.verbose_name == 'Избранный рецепт'
         assert recipe_favorite._meta.verbose_name_plural == 'Избранные рецепты'
@@ -692,7 +692,7 @@ class TestRecipesIngredientsModel():
             ingredient=test_ingredient_1,
             recipe=test_recipe_1)
         assert str(recipe_ingredient) == (
-            'test_name_1 - test_name_1')
+            'test_recipe_name_1 - test_ingredient_name_1')
         assert recipe_ingredient._meta.ordering == ('recipe', 'ingredient')
         assert recipe_ingredient._meta.verbose_name == (
             'Связь моделей "Рецепты" и "Ингредиенты"')
@@ -755,7 +755,7 @@ class TestRecipesTagsModel():
             recipe=test_recipe_1,
             tag=test_tag_1)
         assert str(recipe_tag) == (
-            'test_name_1 - test_name_1')
+            'test_recipe_name_1 - test_tag_name_1')
         assert recipe_tag._meta.ordering == ('recipe', 'tag')
         assert recipe_tag._meta.verbose_name == (
             'Связь моделей "Рецепты" и "Теги"')
