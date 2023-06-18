@@ -1,8 +1,10 @@
 import pytest
+from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from footgram_app.tests.test_models import create_tag_obj, create_user_obj
+from footgram_app.tests.test_models import (
+    create_recipe_obj, create_tag_obj, create_user_obj)
 
 URL_UNAVALIABLE_STATUSES: list = [
     status.HTTP_301_MOVED_PERMANENTLY,
@@ -33,15 +35,14 @@ class TestEndpointAvailability():
         response = self.client().get(f'/api/v1/auth/token/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
 
-    @pytest.mark.parametrize('url', ['', 'me/', '1/', 'set_password/'])
-    def test_users_endpoint(self, url):
+    @pytest.mark.parametrize('url', ['', '1/'])
+    def test_recipes_endpoint(self, url):
         """Тест доступности эндпоинтов:
-            - api/v1/users/;
-            - api/v1/users/me/;
-            - api/v1/users/{pk}/;
-            - api/v1/users/set_password/."""
-        create_user_obj(num=1)
-        response = self.client().get(f'/api/v1/users/{url}')
+            - api/v1/recipes/;
+            - api/v1/recipes/{pk}/."""
+        test_user: User = create_user_obj(num=1)
+        create_recipe_obj(num=1, user=test_user)
+        response = self.client().get(f'/api/v1/recipes/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
 
     @pytest.mark.parametrize('url', ['', '1/'])
@@ -51,4 +52,15 @@ class TestEndpointAvailability():
             - api/v1/tags/{pk}/."""
         create_tag_obj(num=1, unique_color='#000')
         response = self.client().get(f'/api/v1/tags/{url}')
+        assert response.status_code not in URL_UNAVALIABLE_STATUSES
+
+    @pytest.mark.parametrize('url', ['', 'me/', '1/', 'set_password/'])
+    def test_users_endpoint(self, url):
+        """Тест доступности эндпоинтов:
+            - api/v1/users/;
+            - api/v1/users/me/;
+            - api/v1/users/{pk}/;
+            - api/v1/users/set_password/."""
+        create_user_obj(num=1)
+        response = self.client().get(f'/api/v1/users/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
