@@ -101,7 +101,22 @@ def create_tag_obj(num: int, unique_color: str = 'NoData') -> Tags:
 
 
 def create_user_obj(num: int) -> User:
+    """Создает и возвращает объект модели "User".
+    Высокое быстродействие за счет отсутствия шифрования пароля.
+    Тесты, которые требуют валидации поля "password" будут провалены!"""
     return User.objects.create(
+        email=f'test_user_email_{num}@email.com',
+        username=f'test_user_username_{num}',
+        first_name=f'test_user_first_name_{num}',
+        last_name=f'test_user_last_name_{num}',
+        password=f'test_user_password_{num}')
+
+
+def create_user_obj_with_hash(num: int) -> User:
+    """Создает и возвращает объект модели "User".
+    Низкое быстродействие за счет шифрования пароля.
+    Следует применять в тестах, которые требуют валидации поля "password"."""
+    return User.objects.create_user(
         email=f'test_user_email_{num}@email.com',
         username=f'test_user_username_{num}',
         first_name=f'test_user_first_name_{num}',
