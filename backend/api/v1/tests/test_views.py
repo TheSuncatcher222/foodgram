@@ -3,13 +3,15 @@ import json
 import pytest
 from django.contrib.auth.models import User
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from api.v1.serializers import (
     USER_EMAIL_MAX_LEN, USER_FIRST_NAME_MAX_LEN, USER_PASSWORD_MAX_LEN,
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
 from footgram_app.models import Subscriptions
-from footgram_app.tests.test_models import create_tag_obj, create_user_obj
+from footgram_app.tests.test_models import (
+    create_tag_obj, create_user_obj, create_user_obj_with_hash)
 
 URL_API_V1: str = '/api/v1/'
 URL_AUTH: str = f'{URL_API_V1}auth/token/'
@@ -342,23 +344,22 @@ class TestCustomUserViewSet():
     # {'non_field_errors':
     # ['Невозможно войти с предоставленными учетными данными.']}
 
-    # def test_users_get_token(self, create_users):
-    #     """Тест POST-запроса на страницу получения токена по эндпоинту
-    #     "/api/auth/token/login/" для анонимного клиента."""
-    #     test_user: User = User.objects.get(id=1)
-    #     client = anon_client()
-    #     data: dict = {
-    #         'email': test_user.email,
-    #         'password': 'test_password_1'}
-    #     response = client.post(
-    #         URL_AUTH_LOGIN,
-    #         json.dumps(data),
-    #         content_type='application/json')
-    #     assert response.status_code == status.HTTP_200_OK
-    #     content = json.loads(response.content)
-    #     assert content == 1
-    #     assert isinstance(content['auth_token'], str)
-    #     assert len(content['auth_token'] > 0)
+    def test_users_get_token(self):
+        """Тест POST-запроса на страницу получения токена по эндпоинту
+        "/api/auth/token/login/" для анонимного клиента."""
+        test_user: User = create_user_obj_with_hash(num=1)
+        token, _ = Token.objects.get_or_create(user=test_user)
+        client = anon_client()
+        data: dict = {
+            'username': 'test_user_username_1',
+            'password': 'test_user_password_1'}
+        response = client.post(
+            URL_AUTH_LOGIN,
+            json.dumps(data),
+            content_type='application/json')
+        assert response.status_code == status.HTTP_200_OK
+        content = json.loads(response.content)
+        assert content['auth_token'] == token.key
 
 
 @pytest.mark.django_db
