@@ -3,6 +3,7 @@ import json
 import pytest
 from django.contrib.auth.models import User
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from api.v1.serializers import (
@@ -10,8 +11,9 @@ from api.v1.serializers import (
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
 from footgram_app.models import Subscriptions
 
-USERS_URL: str = '/api/v1/users/'
-USERS_ME_URL: str = '/api/v1/users/me/'
+URL_USERS: str = '/api/v1/users/'
+URL_USERS_ME: str = '/api/v1/users/me/'
+URL_USERS_SET_PASSWORD: str = '/api/v1/users/set_password/'
 
 TEST_USERS_COUNT: int = 3
 
@@ -114,7 +116,7 @@ class TestCustomUserViewSet():
         "/api/v1/users/" от лица переданного клиента.
         В случае успешного запроса возвращает ответ, приведенный к формату
         данных Python."""
-        response = client.get(USERS_URL)
+        response = client.get(URL_USERS)
         assert response.status_code == status.HTTP_200_OK
         return json.loads(response.content)
 
@@ -128,7 +130,7 @@ class TestCustomUserViewSet():
         """Совершает POST-запрос к списку пользователей по эндпоинту
         "/api/v1/users/" от лица переданного клиента."""
         response = client.post(
-            USERS_URL, json.dumps(data), content_type='application/json')
+            URL_USERS, json.dumps(data), content_type='application/json')
         assert response.status_code == expected_status
         assert User.objects.all().count() == expected_users_count
         data: dict = json.loads(response.content)
@@ -141,7 +143,7 @@ class TestCustomUserViewSet():
         "/api/v1/users/" для анонимного и авторизированного клиента."""
         client: APIClient = client_func(self)
         response = client.delete(
-            USERS_URL, json.dumps({}), content_type='application/json')
+            URL_USERS, json.dumps({}), content_type='application/json')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
@@ -185,7 +187,7 @@ class TestCustomUserViewSet():
         "/api/v1/users/" для анонимного и авторизированного клиента."""
         client: APIClient = client_func(self)
         response = client.patch(
-            USERS_URL, json.dumps({}), content_type='application/json')
+            URL_USERS, json.dumps({}), content_type='application/json')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
@@ -228,7 +230,7 @@ class TestCustomUserViewSet():
         "/api/v1/users/" для анонимного и авторизированного клиента."""
         client: APIClient = client_func(self)
         response = client.put(
-            USERS_URL, json.dumps({}), content_type='application/json')
+            URL_USERS, json.dumps({}), content_type='application/json')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
@@ -239,7 +241,7 @@ class TestCustomUserViewSet():
         Используется фикстура "create_users" для наполнения тестовой
         БД пользователями."""
         client = client_func(self)
-        response = client.get(f'{USERS_URL}1/')
+        response = client.get(f'{URL_USERS}1/')
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == {
@@ -264,7 +266,7 @@ class TestCustomUserViewSet():
             subscription_to=subscription_to)
         client = self.auth_client()
         client.force_authenticate(user=subscriber)
-        response = client.get(f'{USERS_URL}2/')
+        response = client.get(f'{URL_USERS}2/')
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == {
@@ -280,7 +282,7 @@ class TestCustomUserViewSet():
         """Тест GET-запроса на личную страницу пользователя по эндпоинту
         "/api/v1/users/me/" для анонимного клиента."""
         client: APIClient = self.anon_client()
-        response = client.get(USERS_ME_URL)
+        response = client.get(URL_USERS_ME)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data: dict = json.loads(response.content)
         assert data == {'detail': 'Учетные данные не были предоставлены.'}
@@ -292,7 +294,7 @@ class TestCustomUserViewSet():
         test_user: User = User.objects.get(id=1)
         client = APIClient()
         client.force_authenticate(user=test_user)
-        response = client.get(USERS_ME_URL)
+        response = client.get(URL_USERS_ME)
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == {
@@ -315,8 +317,30 @@ class TestCustomUserViewSet():
         "/api/v1/users/me/" для клиента с поврежденным токеном авторизации."""
         client: APIClient = self.anon_client()
         client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
-        response = client.get(USERS_ME_URL)
+        response = client.get(URL_USERS_ME)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data: dict = json.loads(response.content)
         assert data == expected_data
         return
+
+    # ToDo: разобраться, почему возникает ошибка в response:
+    # {'current_password': ['Неправильный пароль.']}
+    # def test_users_set_password(self):
+    #     """Тест POST-запроса на страницу изменения пароля по эндпоинту
+    #     "/api/users/set_password/" для авторизованного клиента."""
+    #     TEST_PASSWORD_NEW: str = '31fdss2311sddad213'
+    #     test_user = User.objects.create(
+    #         username='test_user',
+    #         password='dasd3213123')
+    #     token, _ = Token.objects.get_or_create(user=test_user)
+    #     client = APIClient()
+    #     client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+    #     data: dict = {
+    #         'current_password': test_user.password,
+    #         'new_password': TEST_PASSWORD_NEW}
+    #     response = client.post(
+    #         URL_USERS_SET_PASSWORD,
+    #         json.dumps(data),
+    #         content_type='application/json')
+    #     content = json.loads(response.content)
+    #     assert content == None
