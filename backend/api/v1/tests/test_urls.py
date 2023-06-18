@@ -1,7 +1,8 @@
 import pytest
-from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APIClient
+
+from footgram_app.tests.test_models import create_user_obj
 
 URL_UNAVALIABLE_STATUSES: list = [
     status.HTTP_301_MOVED_PERMANENTLY,
@@ -14,18 +15,6 @@ URL_UNAVALIABLE_STATUSES: list = [
     status.HTTP_408_REQUEST_TIMEOUT,
     status.HTTP_409_CONFLICT,
     status.HTTP_410_GONE]
-
-
-@pytest.fixture()
-def create_users() -> None:
-    """Фикстура для наполнения БД заданным числом пользователей."""
-    User.objects.create(
-        email='test_user@email.com',
-        username='test_user',
-        first_name='test_user_first_name',
-        last_name='test_user_last_name',
-        password='test_password')
-    return
 
 
 @pytest.mark.django_db
@@ -45,11 +34,12 @@ class TestEndpointAvailability():
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
 
     @pytest.mark.parametrize('url', ['', 'me/', '1/', 'set_password/'])
-    def test_users_endpoint(self, url, create_users):
+    def test_users_endpoint(self, url):
         """Тест доступности эндпоинтов:
             - api/v1/users/;
             - api/v1/users/me/;
             - api/v1/users/{pk}/;
             - api/v1/users/set_password/."""
+        create_user_obj(num=1)
         response = self.client().get(f'/api/v1/users/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
