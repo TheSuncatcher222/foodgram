@@ -21,6 +21,19 @@ URL_USERS_SET_PASSWORD: str = f'{URL_USERS}set_password/'
 TEST_USERS_COUNT: int = 3
 
 
+def anon_client() -> APIClient:
+    """Возвращает объект анонимного клиента."""
+    return APIClient()
+
+
+def auth_client() -> APIClient:
+    """Возвращает объект авторизированного клиента.
+    Авторизация производится форсированная: без использования токенов."""
+    auth_client = APIClient()
+    auth_client.force_authenticate(user=None)
+    return auth_client
+
+
 @pytest.fixture()
 def create_users() -> None:
     """Фикстура для наполнения БД заданным числом пользователей."""
@@ -98,17 +111,6 @@ class TestCustomUserViewSet():
         'email': ['Пользователь с такой электронной почтой уже существует.'],
         'username': ['Пользователь с таким именем уже существует.']}
 
-    def auth_client(self) -> APIClient:
-        """Возвращает объект авторизированного клиента.
-        Авторизация производится форсированная: без использования токенов."""
-        auth_client = APIClient()
-        auth_client.force_authenticate(user=None)
-        return auth_client
-
-    def anon_client(self) -> APIClient:
-        """Возвращает объект анонимного клиента."""
-        return APIClient()
-
     def users_get(self, client: APIClient) -> dict:
         """Совершает GET-запрос к списку пользователей по эндпоинту
         "/api/v1/users/" от лица переданного клиента.
@@ -139,7 +141,7 @@ class TestCustomUserViewSet():
     def test_users_delete_not_allowed(self, client_func):
         """Тест DELETE-запроса на удаление пользователя по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента."""
-        client: APIClient = client_func(self)
+        client: APIClient = client_func()
         response = client.delete(
             URL_USERS, json.dumps({}), content_type='application/json')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
@@ -173,7 +175,7 @@ class TestCustomUserViewSet():
              'first_name': 'test_user_first_name_3',
              'last_name': 'test_user_last_name_3',
              'is_subscribed': False}]
-        data: dict = self.users_get(client=client_func(self))
+        data: dict = self.users_get(client=client_func())
         results_pagination: dict = data['results']
         assert len(results_pagination) == TEST_USERS_COUNT
         assert results_pagination == expected_data
@@ -183,7 +185,7 @@ class TestCustomUserViewSet():
     def test_users_patch_not_allowed(self, client_func) -> None:
         """Тест PATCH-запроса на обновления пользователя по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента."""
-        client: APIClient = client_func(self)
+        client: APIClient = client_func()
         response = client.patch(
             URL_USERS, json.dumps({}), content_type='application/json')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
@@ -195,7 +197,7 @@ class TestCustomUserViewSet():
         "/api/v1/users/" для анонимного и авторизированного клиента.
         Передаваемые данные являются заведомо валидными."""
         self.users_post(
-            client=client_func(self),
+            client=client_func(),
             data=self.VALID_POST_DATA,
             expected_data=self.VALID_POST_DATA_EXP,
             expected_status=status.HTTP_201_CREATED,
@@ -215,7 +217,7 @@ class TestCustomUserViewSet():
         "/api/v1/users/" для анонимного и авторизированного клиента.
         Передаваемые данные являются заведомо не валидными валидными."""
         self.users_post(
-            client=client_func(self),
+            client=client_func(),
             data=data,
             expected_data=expected_data,
             expected_status=status.HTTP_400_BAD_REQUEST,
@@ -226,7 +228,7 @@ class TestCustomUserViewSet():
     def test_users_put_not_allowed(self, client_func) -> None:
         """Тест PUT-запроса на замену пользователя по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента."""
-        client: APIClient = client_func(self)
+        client: APIClient = client_func()
         response = client.put(
             URL_USERS, json.dumps({}), content_type='application/json')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
@@ -238,7 +240,7 @@ class TestCustomUserViewSet():
         "/api/v1/users/{pk}/" для анонимного и авторизированного клиента.
         Используется фикстура "create_users" для наполнения тестовой
         БД пользователями."""
-        client = client_func(self)
+        client = client_func()
         response = client.get(f'{URL_USERS}1/')
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
@@ -262,7 +264,7 @@ class TestCustomUserViewSet():
         Subscriptions.objects.create(
             subscriber=subscriber,
             subscription_to=subscription_to)
-        client = self.auth_client()
+        client = auth_client()
         client.force_authenticate(user=subscriber)
         response = client.get(f'{URL_USERS}2/')
         assert response.status_code == status.HTTP_200_OK
@@ -279,7 +281,7 @@ class TestCustomUserViewSet():
     def test_users_me_anon(self, create_users) -> None:
         """Тест GET-запроса на личную страницу пользователя по эндпоинту
         "/api/v1/users/me/" для анонимного клиента."""
-        client: APIClient = self.anon_client()
+        client: APIClient = anon_client()
         response = client.get(URL_USERS_ME)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data: dict = json.loads(response.content)
@@ -313,7 +315,7 @@ class TestCustomUserViewSet():
             self, token: str, expected_data: dict, create_users) -> None:
         """Тест GET-запроса на личную страницу пользователя по эндпоинту
         "/api/v1/users/me/" для клиента с поврежденным токеном авторизации."""
-        client: APIClient = self.anon_client()
+        client: APIClient = anon_client()
         client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
         response = client.get(URL_USERS_ME)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -352,7 +354,7 @@ class TestCustomUserViewSet():
     #     """Тест POST-запроса на страницу получения токена по эндпоинту
     #     "/api/auth/token/login/" для анонимного клиента."""
     #     test_user: User = User.objects.get(id=1)
-    #     client = self.anon_client()
+    #     client = anon_client()
     #     data: dict = {
     #         'email': test_user.email,
     #         'password': 'test_password_1'}
