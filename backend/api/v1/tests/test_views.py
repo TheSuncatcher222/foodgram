@@ -11,7 +11,7 @@ from api.v1.serializers import (
 from footgram_app.models import Subscriptions
 from footgram_app.tests.test_models import create_tag_obj, create_user_obj
 
-URL_API_V1 = '/api/v1/'
+URL_API_V1: str = '/api/v1/'
 URL_AUTH: str = f'{URL_API_V1}auth/token/'
 URL_AUTH_LOGIN: str = f'{URL_AUTH}login/'
 URL_AUTH_LOGOUT: str = f'{URL_AUTH}logout/'
@@ -183,7 +183,7 @@ class TestCustomUserViewSet():
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     @pytest.mark.parametrize('method', ['delete', 'patch', 'put'])
-    def test_users_not_allowed_methods(self, client_func, method):
+    def test_users_not_allowed_methods(self, client_func, method) -> None:
         """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/":
             - DELETE;
             - PATCH;
@@ -414,7 +414,7 @@ class TestTagsViewSet():
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
-    def test_tags_not_allowed_methods(self, client_func, method):
+    def test_tags_not_allowed_methods(self, client_func, method) -> None:
         """Тест запрета на CRUD запросы к эндпоинту "/api/v1/tags/":
             - DELETE;
             - PATCH;
@@ -424,3 +424,18 @@ class TestTagsViewSet():
         response = getattr(client, method)(URL_TAGS)
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('url', [URL_TAGS, URL_USERS])
+def test_view_sets_pagination(url, create_tags, create_users) -> None:
+    """Производит тест пагинации вьюсетов:
+        - CustomUserViewSet;
+        - TagsViewSet.
+    Используется фикстуры для наполнения тестовой БД:
+        "create_users" - пользователями;
+        "create_tags" - тегами."""
+    client: APIClient = auth_client()
+    response = client.get(url)
+    data: dict = json.loads(response.content)
+    assert list(data) == ['count', 'next', 'previous', 'results']
