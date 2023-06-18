@@ -5,21 +5,24 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
-    CustomUserSerializer, TagsSerializer, RecipesFavoritesSerializer)
-from footgram_app.models import Tags, RecipesFavorites
+    CustomUserSerializer, RecipesSerializer, TagsSerializer)
+from footgram_app.models import Tags, Recipes
 
 
 class CustomUserViewSet(ModelViewSet):
     """
     Вью-сет обрабатывает следующие эндпоинты:
-    1) `.../users/ - предоставляет информацию о пользователях при GET запросе,
-        создает нового пользователя при POST запросе;
+    1) `.../users/    - предоставляет информацию о пользователях
+                        при GET запросе,
+                      - создает нового пользователя при POST запросе;
     2) `.../users/pk/ - предоставляет информацию о пользователе с ID=pk
-        при GET запросе.
+                        при GET запросе.
     Дополнительные action-эндпоинты:
     3) `.../users/me/ - предоставляет информацию о текущем пользователе
-        (только для авторизированных пользователей!).
+                        при GET запросе (доступно только
+                        авторизированному пользователю).
     """
     http_method_names = ('get', 'list', 'post')
     serializer_class = CustomUserSerializer
@@ -46,12 +49,29 @@ class CustomUserViewSet(ModelViewSet):
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
+class RecipesViewSet(ModelViewSet):
+    """
+    Вью-сет обрабатывает следующие эндпоинты:
+    1) `.../recipes/  - предоставляет информацию о рецептах при GET запросе;
+                      - создает рецепт при POST запросе;
+    2) `.../tags/{pk} - предоставляет информацию о рецепте с ID=pk
+                      - обновляет рецепт при PATCH запросе
+                        (доступно только автору рецепта);
+                      - удаляет рецепт при DELETE запросе
+                        (доступно только автору рецепта).
+    """
+    http_method_names = ('delete', 'get', 'list', 'patch', 'post')
+    permission_classes = (IsAuthorOrAdminOrReadOnly,)
+    serializer_class = RecipesSerializer
+    queryset = Recipes.objects.all()
+
+
 class TagsViewSet(ModelViewSet):
     """
     Вью-сет обрабатывает следующие эндпоинты:
-    1) `.../tags/ - предоставляет информацию о тегах при GET запросе;
+    1) `.../tags/     - предоставляет информацию о тегах при GET запросе;
     2) `.../tags/{pk} - предоставляет информацию о теге с ID=pk
-       при GET запросе.
+                        при GET запросе.
     """
     http_method_names = ('get', 'list')
     serializer_class = TagsSerializer
