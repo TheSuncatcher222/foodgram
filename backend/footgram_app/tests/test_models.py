@@ -43,13 +43,6 @@ def create_recipe_ingredient_obj(
         recipe=recipe)
 
 
-def create_recipe_tag_obj(recipe: Recipes, tag: Tags) -> RecipesTags:
-    """Создает и возвращает объект модели "RecipesTags"."""
-    return RecipesTags.objects.create(
-        recipe=recipe,
-        tag=tag)
-
-
 def create_recipe_obj(num: int, user: User) -> None:
     """Создает и возвращает объект модели "Recipes".
     Изображения сохраняются в отдельную субдиректорию медиа для тестов."""
@@ -63,6 +56,13 @@ def create_recipe_obj(num: int, user: User) -> None:
         name=f'test_recipe_name_{num}',
         text=f'test_recipe_text_{num}')
     return recipe
+
+
+def create_recipe_tag_obj(recipe: Recipes, tag: Tags) -> RecipesTags:
+    """Создает и возвращает объект модели "RecipesTags"."""
+    return RecipesTags.objects.create(
+        recipe=recipe,
+        tag=tag)
 
 
 def create_recipe_favorite_obj(
