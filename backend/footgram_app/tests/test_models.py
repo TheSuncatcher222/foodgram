@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db.models import CASCADE
+from django.db.models import CASCADE, SET_NULL
 
 from footgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
@@ -539,7 +539,9 @@ class TestShoppingCartsModel():
         assert user.remote_field.related_name == 'shopping_cart'
         assert user.verbose_name == 'Корзина пользователя'
         cart_item = shopping_cart._meta.get_field('cart_item')
-        assert cart_item.remote_field.on_delete == CASCADE
+        assert cart_item.blank
+        assert cart_item.null
+        assert cart_item.remote_field.on_delete == SET_NULL
         assert cart_item.remote_field.related_name == 'shopping_cart'
         assert cart_item.verbose_name == 'Рецепт в корзине'
         return
@@ -781,11 +783,15 @@ class TestRecipesTagsModel():
         assert recipe_tag._meta.verbose_name_plural == (
             'Связи моделей "Рецепты" и "Теги"')
         recipe = recipe_tag._meta.get_field('recipe')
-        assert recipe.remote_field.on_delete == CASCADE
+        assert recipe.blank
+        assert recipe.null
+        assert recipe.remote_field.on_delete == SET_NULL
         assert recipe.remote_field.related_name == 'recipe_tag'
         assert recipe.verbose_name == 'Рецепт'
         tag = recipe_tag._meta.get_field('tag')
-        assert tag.remote_field.on_delete == CASCADE
+        assert tag.blank
+        assert tag.null
+        assert tag.remote_field.on_delete == SET_NULL
         assert tag.remote_field.related_name == 'tag_recipe'
         assert tag.verbose_name == 'Тег'
         return
