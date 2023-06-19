@@ -317,32 +317,22 @@ class TestCustomUserViewSet():
         assert data == expected_data
         return
 
-    # ToDo: разобраться, почему возникает ошибка в response:
-    # {'current_password': ['Неправильный пароль.']}
-
-    # def test_users_set_password(self):
-    #     """Тест POST-запроса на страницу изменения пароля по эндпоинту
-    #     "/api/users/set_password/" для авторизованного клиента."""
-    #     TEST_PASSWORD_NEW: str = '31fdss2311sddad213'
-    #     test_user = User.objects.create(
-    #         username='test_user',
-    #         password='dasd3213123')
-    #     token, _ = Token.objects.get_or_create(user=test_user)
-    #     client = APIClient()
-    #     client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
-    #     data: dict = {
-    #         'current_password': test_user.password,
-    #         'new_password': TEST_PASSWORD_NEW}
-    #     response = client.post(
-    #         URL_USERS_SET_PASSWORD,
-    #         json.dumps(data),
-    #         content_type='application/json')
-    #     content = json.loads(response.content)
-    #     assert content == None
-
-    # ToDo: разобраться, почему возникает ошибка в response:
-    # {'non_field_errors':
-    # ['Невозможно войти с предоставленными учетными данными.']}
+    def test_users_set_password(self):
+        """Тест POST-запроса на страницу изменения пароля по эндпоинту
+        "/api/users/set_password/" для авторизованного клиента."""
+        test_user: User = create_user_obj_with_hash(num=1)
+        token, _ = Token.objects.get_or_create(user=test_user)
+        client = anon_client()
+        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        NEW_PASSWORD: str = 'some_new_data_pass'
+        data: dict = {
+            'current_password': 'test_user_password_1',
+            'new_password': NEW_PASSWORD}
+        response = client.post(
+            URL_USERS_SET_PASSWORD,
+            json.dumps(data),
+            content_type='application/json')
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
     def test_users_get_token(self):
         """Тест POST-запроса на страницу получения токена по эндпоинту
