@@ -17,7 +17,7 @@
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db.models import (
-    CASCADE,
+    CASCADE, SET_NULL,
     CharField, FloatField, ForeignKey, ImageField, IntegerField,
     ManyToManyField, SlugField, TextField, UniqueConstraint,
     Model)
@@ -342,12 +342,16 @@ class RecipesTags(Model):
     """
     recipe = ForeignKey(
         Recipes,
-        on_delete=CASCADE,
+        blank=True,
+        null=True,
+        on_delete=SET_NULL,
         related_name='recipe_tag',
         verbose_name='Рецепт')
     tag = ForeignKey(
         Tags,
-        on_delete=CASCADE,
+        blank=True,
+        null=True,
+        on_delete=SET_NULL,
         related_name='tag_recipe',
         verbose_name='Тег')
 
@@ -394,7 +398,9 @@ class ShoppingCarts(Model):
         verbose_name='Корзина пользователя')
     cart_item = ForeignKey(
         Recipes,
-        on_delete=CASCADE,
+        blank=True,
+        null=True,
+        on_delete=SET_NULL,
         related_name='shopping_cart',
         verbose_name='Рецепт в корзине')
 
