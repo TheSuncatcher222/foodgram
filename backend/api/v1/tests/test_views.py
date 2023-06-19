@@ -11,12 +11,14 @@ from api.v1.serializers import (
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
 from footgram_app.models import Subscriptions
 from footgram_app.tests.test_models import (
-    create_tag_obj, create_user_obj, create_user_obj_with_hash)
+    create_recipe_obj, create_tag_obj, create_user_obj,
+    create_user_obj_with_hash)
 
 URL_API_V1: str = '/api/v1/'
 URL_AUTH: str = f'{URL_API_V1}auth/token/'
 URL_AUTH_LOGIN: str = f'{URL_AUTH}login/'
 URL_AUTH_LOGOUT: str = f'{URL_AUTH}logout/'
+URL_RECIPES: str = f'{URL_API_V1}recipes/'
 URL_TAGS: str = f'{URL_API_V1}tags/'
 URL_USERS: str = f'{URL_API_V1}users/'
 URL_USERS_ME: str = f'{URL_USERS}me/'
@@ -36,6 +38,16 @@ def auth_client() -> APIClient:
     auth_client = APIClient()
     auth_client.force_authenticate(user=None)
     return auth_client
+
+
+@pytest.fixture()
+def create_recipes_and_users() -> None:
+    """Фикстура для наполнения БД заданным числом рецептов.
+    Также создает пользователей, которые являются авторами этих рецептов."""
+    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+        user: User = create_user_obj(num=i)
+        create_recipe_obj(num=i, user=user)
+    return
 
 
 @pytest.fixture()
@@ -317,7 +329,7 @@ class TestCustomUserViewSet():
         assert data == expected_data
         return
 
-    def test_users_set_password(self):
+    def test_users_set_password(self) -> None:
         """Тест POST-запроса на страницу изменения пароля по эндпоинту
         "/api/users/set_password/" для авторизованного клиента."""
         test_user: User = create_user_obj_with_hash(num=1)
@@ -334,7 +346,7 @@ class TestCustomUserViewSet():
             content_type='application/json')
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    def test_users_get_token(self):
+    def test_users_get_token(self) -> None:
         """Тест POST-запроса на страницу получения токена по эндпоинту
         "/api/auth/token/login/" для анонимного клиента."""
         test_user: User = create_user_obj_with_hash(num=1)
@@ -418,13 +430,15 @@ class TestTagsViewSet():
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('url', [URL_TAGS, URL_USERS])
-def test_view_sets_pagination(url, create_tags, create_users) -> None:
+@pytest.mark.parametrize('url', [URL_RECIPES, URL_TAGS, URL_USERS])
+def test_view_sets_pagination(
+        url, create_recipes_and_users, create_tags) -> None:
     """Производит тест пагинации вьюсетов:
         - CustomUserViewSet;
+        - RecipesViewSet;
         - TagsViewSet.
     Используется фикстуры для наполнения тестовой БД:
-        "create_users" - пользователями;
+        "create_recipes_and_users" - рецептами и пользователями;
         "create_tags" - тегами."""
     client: APIClient = auth_client()
     response = client.get(url)
