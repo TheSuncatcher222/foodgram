@@ -532,6 +532,7 @@ class TestRecipesViewSet():
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
+    # ToDo: раскомментировать, когда будет готов сериализатор
     # @pytest.mark.parametrize('user, response_code', [
     #     ('author', status.HTTP_200_OK),
     #     ('admin', status.HTTP_403_FORBIDDEN)])
