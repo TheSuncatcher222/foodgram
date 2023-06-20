@@ -24,6 +24,7 @@ URL_API_V1: str = '/api/v1/'
 URL_AUTH: str = f'{URL_API_V1}auth/token/'
 URL_AUTH_LOGIN: str = f'{URL_AUTH}login/'
 URL_AUTH_LOGOUT: str = f'{URL_AUTH}logout/'
+URL_INGREDIENTS: str = f'{URL_API_V1}ingredients/'
 URL_RECIPES: str = f'{URL_API_V1}recipes/'
 URL_TAGS: str = f'{URL_API_V1}tags/'
 URL_USERS: str = f'{URL_API_V1}users/'
@@ -44,6 +45,14 @@ def auth_client() -> APIClient:
     auth_client = APIClient()
     auth_client.force_authenticate(user=None)
     return auth_client
+
+
+@pytest.fixture()
+def create_ingredients() -> None:
+    """Фикстура для наполнения БД заданным числом ингредиентов."""
+    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+        create_ingredient_obj(num=i)
+    return
 
 
 @pytest.fixture()
@@ -188,7 +197,7 @@ class TestCustomUserViewSet():
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_users_get(self, client_func: APIClient, create_users) -> None:
+    def test_users_get(self, client_func, create_users) -> None:
         """Тест GET-запроса списка пользователей по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента.
         Используется фикстура "create_users" для наполнения тестовой
@@ -212,7 +221,7 @@ class TestCustomUserViewSet():
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     @pytest.mark.parametrize('method', ['delete', 'patch', 'put'])
     def test_users_not_allowed_methods(
-            self, client_func: APIClient, method) -> None:
+            self, client_func, method) -> None:
         """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/":
             - DELETE;
             - PATCH;
@@ -223,7 +232,7 @@ class TestCustomUserViewSet():
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_users_post_allow_create(self, client_func: APIClient) -> None:
+    def test_users_post_allow_create(self, client_func) -> None:
         """Тест POST-запроса на создание нового пользователя по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента.
         Передаваемые данные являются заведомо валидными."""
@@ -244,7 +253,7 @@ class TestCustomUserViewSet():
         (NON_VALID_POST_DATA_EXISTED, NON_VALID_POST_DATA_EXISTED_EXP)])
     def test_users_post_field_validation(
             self,
-            client_func: APIClient,
+            client_func,
             data: dict,
             expected_data: dict,
             create_users) -> None:
@@ -260,7 +269,7 @@ class TestCustomUserViewSet():
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_users_pk(self, client_func: APIClient, create_users) -> None:
+    def test_users_pk(self, client_func, create_users) -> None:
         """Тест GET-запроса на личную страницу пользователя по эндпоинту
         "/api/v1/users/{pk}/" для анонимного и авторизированного клиента.
         Используется фикстура "create_users" для наполнения тестовой
@@ -384,6 +393,65 @@ class TestCustomUserViewSet():
 
 
 @pytest.mark.django_db
+class TestIngredientsViewSet():
+    """Производит тест вью-сета "IngredientsViewSet"."""
+
+    FIRST_INGREDIENT_EXP: dict = {
+        'id': 1,
+        'name': 'test_ingredient_name_1',
+        'measurement_unit': 'батон'}
+
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_ingredients_get(
+            self, client_func, create_ingredients) -> None:
+        """Тест GET-запроса списка ингредиентов по эндпоинту
+        "/api/v1/ingredients/" для анонимного и авторизированного клиента.
+        Используется фикстура "create_ingredients" для наполнения
+        тестовой БД ингредиентами.
+        В классе используется пагинация. В рамках теста производится анализ
+        содержимого "results" для первого элемента. Тест непосредственно
+        пагинации производится в функции "test_view_sets_pagination"."""
+        client: APIClient = client_func()
+        response = client.get(URL_INGREDIENTS)
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        results_pagination: dict = data['results']
+        assert results_pagination[0] == self.FIRST_INGREDIENT_EXP
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_ingredients_get_pk(
+            self, client_func, create_ingredients) -> None:
+        """Тест GET-запроса на ингредиент по эндпоинту 
+        "/api/v1/ingredients/{pk}/" для анонимного и авторизированного клиента.
+        Используется фикстура "create_ingredients" для наполнения
+        тестовой БД ингредиентами."""
+        client: APIClient = client_func()
+        response = client.get(f'{URL_INGREDIENTS}1/')
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        assert data == self.FIRST_INGREDIENT_EXP
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
+    def test_recipes_not_allowed_methods(
+        self, client_func, method, create_ingredients) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/recipes/":
+            - DELETE;
+            - PATCH;
+            - POST;
+            - PUT.
+        Используется фикстура "create_ingredients" для наполнения
+        тестовой БД ингредиентами."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(URL_TAGS)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        return
+
+
+@pytest.mark.django_db
 class TestRecipesViewSet():
     """Производит тест вью-сета "RecipesViewSet"."""
 
@@ -431,7 +499,7 @@ class TestRecipesViewSet():
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_recipes_get(
             self,
-            client_func: APIClient,
+            client_func,
             create_recipes_ingredients_tags_users) -> None:
         """Тест GET-запроса списка рецептов по эндпоинту "/api/v1/recipes/"
         для анонимного и авторизированного клиента.
@@ -478,7 +546,7 @@ class TestRecipesViewSet():
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_recipes_get_pk(
             self,
-            client_func: APIClient,
+            client_func,
             create_recipes_ingredients_tags_users) -> None:
         """Тест GET-запроса на рецепт по эндпоинту "/api/v1/recipes/{pk}/"
         для анонимного и авторизированного клиента.
