@@ -176,26 +176,54 @@ class RecipesSerializer(ModelSerializer):
             'cooking_time')
         read_only_fields = ('author',)
 
-    def create(self, validated_data):
-        """Переопределяет метод сохранения данных, включает инструкции
-        по работе со связными сериализаторами:
-            - "ingredients": "IngredientsRecipesSerializer";
-            - "tags": "TagsSerializer"."""
-        validated_data['author'] = self.context['request'].user
-        ingredients: list = validated_data.pop('ingredients')
-        tags: list = validated_data.pop('tags')
-        recipe = Recipes.objects.create(**validated_data)
-        for ingredient in ingredients:
-            current_ingredient: Ingredients = (
-                Ingredients.objects.get(id=ingredient['id']))
-            RecipesIngredients.objects.create(
-                amount=ingredient['amount'],
-                recipe=recipe,
-                ingredient=current_ingredient)
-        for tag in tags:
-            current_tag = Tags.objects.get(id=tag)
-            RecipesTags.objects.create(recipe=recipe, tag=current_tag)
-        return recipe
+    # ToDo: сделать корректный код
+    # def create(self, validated_data):
+    #     """Переопределяет метод сохранения данных (POST)."""
+    #     validated_data['author'] = self.context['request'].user
+    #     ingredients: list = validated_data.get('ingredients', False)
+    #     tags: list = validated_data.get('tags', False)
+    #     recipe = Recipes.objects.create(**validated_data)
+    #     for ingredient in ingredients:
+    #         current_ingredient: Ingredients = (
+    #             Ingredients.objects.get(id=ingredient['id']))
+    #         recipe.recipe_ingredient.set(
+    #             amount=ingredient['amount'],
+    #             ingredient=current_ingredient)
+    #         RecipesIngredients.objects.create(
+    #             amount=ingredient['amount'],
+    #             recipe=recipe,
+    #             ingredient=current_ingredient)
+    #     for tag in tags:
+    #         current_tag = Tags.objects.get(id=tag)
+    #         recipe.recipe_tag.set(
+    #             recipe=recipe)
+    #     return recipe
+
+    # ToDo: сделать корректный код
+    # def update(self, instance, validated_data):
+    #     """Переопределяет метод обновления данных (PATCH)."""
+    #     instance.name = validated_data.get('name', instance.name)
+    #     instance.image = validated_data.get('image', instance.image)
+    #     instance.text = validated_data.get('text', instance.text)
+    #     instance.cooking_time = validated_data.get(
+    #         'cooking_time', instance.cooking_time)
+    #     ingredients = validated_data.get('ingredients')
+    #     if ingredients:
+    #         RecipesIngredients.objects.filter(recipe=instance).delete()
+    #         for ingredient in ingredients:
+    #             current_ingredient: Ingredients = (
+    #                 Ingredients.objects.get(id=ingredient['id']))
+    #             RecipesIngredients.objects.create(
+    #                 amount=ingredient['amount'],
+    #                 recipe=instance,
+    #                 ingredient=current_ingredient)
+    #     tags = validated_data.get('tags')
+    #     if tags:
+    #         RecipesTags.objects.filter(recipe=instance).delete()
+    #         for tag in tags:
+    #             current_tag = Tags.objects.get(id=tag)
+    #             RecipesTags.objects.create(recipe=instance, tag=current_tag)
+    #     return instance
 
     def get_is_favorited(self, obj):
         """Показывает наличие рецепта в избранном пользователя в поле
