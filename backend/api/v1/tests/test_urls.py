@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from footgram_app.tests.test_models import (
-    create_recipe_obj, create_tag_obj, create_user_obj)
+    create_ingredient_obj, create_recipe_obj, create_tag_obj, create_user_obj)
 
 URL_UNAVALIABLE_STATUSES: list = [
     status.HTTP_301_MOVED_PERMANENTLY,
@@ -27,6 +27,16 @@ class TestEndpointAvailability():
         """Возвращает объект анонимного клиента."""
         return APIClient()
 
+    @pytest.mark.parametrize('url', ['', '1/'])
+    def test_ingredients(self, url):
+        """Тест доступности эндпоинтов:
+            - api/v1/ingredients/;
+            - api/v1/ingredients/1/."""
+        create_ingredient_obj(num=1)
+        response = self.client().get(f'/api/v1/ingredients/{url}')
+        assert response.status_code not in URL_UNAVALIABLE_STATUSES
+        return
+
     @pytest.mark.parametrize('url', ['login/', 'logout/'])
     def test_auth_token_endpoints(self, url):
         """Тест доступности эндпоинтов:
@@ -34,6 +44,7 @@ class TestEndpointAvailability():
             - api/v1/auth/token/logout/."""
         response = self.client().get(f'/api/v1/auth/token/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
+        return
 
     @pytest.mark.parametrize('url', ['', '1/'])
     def test_recipes_endpoint(self, url):
@@ -44,6 +55,7 @@ class TestEndpointAvailability():
         create_recipe_obj(num=1, user=test_user)
         response = self.client().get(f'/api/v1/recipes/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
+        return
 
     @pytest.mark.parametrize('url', ['', '1/'])
     def test_tags_endpoint(self, url):
@@ -53,6 +65,7 @@ class TestEndpointAvailability():
         create_tag_obj(num=1, unique_color='#000')
         response = self.client().get(f'/api/v1/tags/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
+        return
 
     @pytest.mark.parametrize('url', ['', 'me/', '1/', 'set_password/'])
     def test_users_endpoint(self, url):
@@ -64,3 +77,4 @@ class TestEndpointAvailability():
         create_user_obj(num=1)
         response = self.client().get(f'/api/v1/users/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
+        return
