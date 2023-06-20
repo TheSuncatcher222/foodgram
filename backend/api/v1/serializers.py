@@ -22,7 +22,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.serializers import (
     ModelSerializer,
-    EmailField, CharField, SerializerMethodField,
+    CharField, EmailField, IntegerField, ListField, SerializerMethodField,
     ValidationError)
 from footgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
@@ -130,18 +130,6 @@ class IngredientsSerializer(ModelSerializer):
             'measurement_unit')
 
 
-class TagsSerializer(ModelSerializer):
-    """Создает сериализатор для модели "Tags"."""
-
-    class Meta:
-        model = Tags
-        fields = (
-            'id',
-            'name',
-            'color',
-            'slug')
-
-
 class RecipesSerializer(ModelSerializer):
     """Создает сериализатор для модели "Recipes"."""
 
@@ -149,7 +137,6 @@ class RecipesSerializer(ModelSerializer):
     ingredients = IngredientsSerializer(many=True)
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
-    tags = TagsSerializer(many=True)
 
     class Meta:
         model = Recipes
@@ -169,21 +156,21 @@ class RecipesSerializer(ModelSerializer):
     def create(self, validated_data):
         """Переопределяет метод сохранения данных, включает инструкции
         по работе со связными сериализаторами:
-            - "ingredients": "IngredientsSerializer";
+            - "ingredients": "IngredientsRecipesSerializer";
             - "tags": "TagsSerializer"."""
         validated_data['author'] = self.context['request'].user
         ingredients: list = validated_data.pop('ingredients')
         tags: list = validated_data.pop('tags')
         recipe = Recipes.objects.create(**validated_data)
         for ingredient in ingredients:
-            # ToDo: проверить, что тут происходит и можно ли применить метод:
-            # ingredient = ingredient.title()
-            current_ingredient, _ = (
-                Ingredients.objects.get_or_create(**ingredient))
+            current_ingredient: Ingredients = (
+                Ingredients.objects.get(id=ingredient['id']))
             RecipesIngredients.objects.create(
-                recipe=recipe, ingredient=current_ingredient)
+                amount=ingredient['amount'],
+                recipe=recipe,
+                ingredient=current_ingredient)
         for tag in tags:
-            current_tag, _ = Tags.objects.get_or_create(**tag)
+            current_tag = Tags.objects.get(id=tag)
             RecipesTags.objects.create(recipe=recipe, tag=current_tag)
         return recipe
 
@@ -204,6 +191,16 @@ class RecipesSerializer(ModelSerializer):
         if user.is_anonymous:
             return False
         return ShoppingCarts.objects.filter(user=user, cart_item=obj).exists()
+
+    def get_fields(self):
+        """Определяет сериализатор для поля "tags" в зависимости
+        от типа HTTP-запроса."""
+        fields = super().get_fields()
+        if self.context['request'].method in ('PATCH', 'POST', 'PUT'):
+            fields['tags'] = TagsIdListSerializer()
+        else:
+            fields['tags'] = TagsSerializer(many=True)
+        return fields
 
     # ToDo: проверить необходимость кода:
     # def perform_create(self, serializer):
@@ -297,3 +294,24 @@ class ShoppingCartsSerializer(ModelSerializer):
             ShoppingCarts, recipe=recipe_id, user=user)
         recipe_favorite.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TagsSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Tags"."""
+    class Meta:
+        model = Tags
+        fields = (
+            'id',
+            'name',
+            'color',
+            'slug')
+
+
+class TagsIdListSerializer(ListField):
+    """Создает сериализатор, который принимает список ID тегов.
+    Сериализатор используется в RecipesViewSet для HTTP-методов:
+        - "PATCH";
+        - "POST";
+        - "PUT"."""
+
+    child = IntegerField(min_value=1)
