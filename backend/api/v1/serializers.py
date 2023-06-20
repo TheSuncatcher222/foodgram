@@ -22,7 +22,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.serializers import (
     ModelSerializer,
-    CharField, EmailField, IntegerField, ListField, SerializerMethodField,
+    CharField, EmailField, FloatField, IntegerField, ListField, ReadOnlyField,
+    SerializerMethodField,
     ValidationError)
 from footgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
@@ -130,11 +131,33 @@ class IngredientsSerializer(ModelSerializer):
             'measurement_unit')
 
 
+class RecipesIngredientsSerializer(ModelSerializer):
+    """Создает сериализатор для модели "RecipesIngredients"."""
+
+    id = IntegerField(source='ingredient.id')
+    name = CharField(source='ingredient.name')
+    measurement_unit = CharField(source='ingredient.measurement_unit')
+
+    class Meta:
+        model = RecipesIngredients
+        fields = ('id', 'name', 'measurement_unit', 'amount')
+
+    def get_fields(self):
+        """Переопределяет поля сериализатора: устанавливает для всех
+        параметр "read_only"."""
+        fields = super().get_fields()
+        for field in fields.values():
+            field.read_only = True
+        return fields
+
+
 class RecipesSerializer(ModelSerializer):
     """Создает сериализатор для модели "Recipes"."""
 
     author = CustomUserSerializer(read_only=True)
-    ingredients = IngredientsSerializer(many=True)
+    ingredients = RecipesIngredientsSerializer(
+        many=True,
+        source='recipe_ingredient',)
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
 
