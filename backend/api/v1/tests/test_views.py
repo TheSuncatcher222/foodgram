@@ -428,7 +428,6 @@ class TestRecipesViewSet():
         assert response.status_code == status_del_other
         return
 
-    # ToDo: update tests: add ingredients.amount
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_recipes_get(
             self,
@@ -459,8 +458,7 @@ class TestRecipesViewSet():
                 'id': 3,
                 'name': 'test_ingredient_name_3',
                 'measurement_unit': 'батон',
-                # 'amount': 3
-            }],
+                'amount': 3}],
             'is_favorited': False,
             'is_in_shopping_cart': False,
             'name': 'test_recipe_name_3',
@@ -505,8 +503,7 @@ class TestRecipesViewSet():
                 'id': 1,
                 'name': 'test_ingredient_name_1',
                 'measurement_unit': 'батон',
-            #     'amount': 1
-            }],
+                'amount': 1}],
             'is_favorited': False,
             'is_in_shopping_cart': False,
             'name': 'test_recipe_name_1',
