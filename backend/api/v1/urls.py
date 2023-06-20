@@ -2,9 +2,13 @@ from django.urls import include, path
 from djoser.views import TokenCreateView, TokenDestroyView, UserViewSet
 from rest_framework.routers import DefaultRouter
 
-from api.v1.views import CustomUserViewSet, RecipesViewSet, TagsViewSet
+from api.v1.views import (
+    CustomUserViewSet, IngredientsViewSet, RecipesViewSet, TagsViewSet)
 
 roots: list[dict] = [
+     {'path': r'ingredients',
+      'viewset': IngredientsViewSet,
+      'basename': 'ingredients'},
      {'path': r'recipes',
       'viewset': RecipesViewSet,
       'basename': 'recipes'},
