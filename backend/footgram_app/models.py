@@ -189,7 +189,10 @@ class Recipes(Model):
         related_name='recipe_author',
         verbose_name='Автор')
     cooking_time = IntegerField(
-        validators=[MinValueValidator(1)],
+        validators=[
+            MinValueValidator(
+                limit_value=1,
+                message='Время должно быть равно 1 или более минут!')],
         verbose_name='Время приготовления (в минутах)')
     image = ImageField(
         upload_to=RECIPES_MEDIA_ROOT,
