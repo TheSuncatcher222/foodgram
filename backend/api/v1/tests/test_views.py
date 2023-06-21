@@ -401,7 +401,6 @@ class TestIngredientsViewSet():
         'name': 'test_ingredient_name_1',
         'measurement_unit': 'батон'}
 
-
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_ingredients_get(
             self, client_func, create_ingredients) -> None:
@@ -423,7 +422,7 @@ class TestIngredientsViewSet():
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_ingredients_get_pk(
             self, client_func, create_ingredients) -> None:
-        """Тест GET-запроса на ингредиент по эндпоинту 
+        """Тест GET-запроса на ингредиент по эндпоинту
         "/api/v1/ingredients/{pk}/" для анонимного и авторизированного клиента.
         Используется фикстура "create_ingredients" для наполнения
         тестовой БД ингредиентами."""
@@ -437,7 +436,7 @@ class TestIngredientsViewSet():
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
     def test_recipes_not_allowed_methods(
-        self, client_func, method, create_ingredients) -> None:
+            self, client_func, method, create_ingredients) -> None:
         """Тест запрета на CRUD запросы к эндпоинту "/api/v1/recipes/":
             - DELETE;
             - PATCH;
@@ -456,7 +455,7 @@ class TestRecipesViewSet():
     """Производит тест вью-сета "RecipesViewSet"."""
 
     def recipes_post(
-            self, client: APIClient, data: dict) -> tuple[status, dict]:
+            self, client: APIClient, data: dict) -> tuple:
         """Совершает POST-запрос к списку рецептов по эндпоинту
         "/api/v1/recipes/" от лица переданного клиента.
         Возвращает HTTP статус код ответа и JSON данные, приведенные
@@ -526,7 +525,7 @@ class TestRecipesViewSet():
                 'id': 3,
                 'name': 'test_ingredient_name_3',
                 'measurement_unit': 'батон',
-                'amount': 3}],
+                'amount': 3.0}],
             'is_favorited': False,
             'is_in_shopping_cart': False,
             'name': 'test_recipe_name_3',
@@ -571,7 +570,7 @@ class TestRecipesViewSet():
                 'id': 1,
                 'name': 'test_ingredient_name_1',
                 'measurement_unit': 'батон',
-                'amount': 1}],
+                'amount': 1.0}],
             'is_favorited': False,
             'is_in_shopping_cart': False,
             'name': 'test_recipe_name_1',
@@ -609,7 +608,8 @@ class TestRecipesViewSet():
     #         user: str,
     #         response_code: status,
     #         create_recipes_ingredients_tags_users) -> None:
-    #     """""Тест PATCH-запроса на рецепт по эндпоинту "/api/v1/recipes/{pk}/"
+    #     """""Тест PATCH-запроса на рецепт по эндпоинту
+    #     "/api/v1/recipes/{pk}/"
     #     для анонимного и авторизированного клиента.
     #     Используется фикстура "create_recipes_ingredients_tags_users"
     #     для наполнения тестовой БД рецептами с тегами и ингредиентами."""
@@ -661,11 +661,11 @@ class TestRecipesViewSet():
             {'id': 1,
              'name': 'test_ingredient_name_1',
              'measurement_unit': 'батон',
-             'amount': 1},
+             'amount': 1.0},
             {'id': 2,
              'name': 'test_ingredient_name_2',
              'measurement_unit': 'батон',
-             'amount': 2}],
+             'amount': 2.0}],
         'is_favorited': False,
         'is_in_shopping_cart': False,
         'name': 'api_create_recipe',
