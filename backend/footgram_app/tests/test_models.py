@@ -11,7 +11,7 @@ from django.db.models import CASCADE, SET_NULL
 
 from footgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
-    RecipesTags, ShoppingCarts, Subscriptions, Tags, User)
+    RecipesTags, ShoppingCarts, Subscriptions, Tags)
 
 IMAGE_BYTES: bytes = (
     b'\x47\x49\x46\x38\x39\x61\x02\x00'
@@ -258,7 +258,7 @@ class TestTagsModel():
         tag = create_tag_obj(num=1, unique_color='#000')
         assert Tags.objects.all().count() == 1
         assert tag.name == 'test_tag_name_1'
-        assert tag.color == '#000'
+        assert tag.color == '#000000'
         assert tag.slug == 'test_tag_slug_1'
         return
 
