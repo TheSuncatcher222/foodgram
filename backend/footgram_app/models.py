@@ -11,10 +11,11 @@
     - Subscriptions
     - Tags
 
-Создает список используемых в проекте единиц измерения: "UNITS".
+Создает список используемых в проекте единиц измерения ингредиентов: "UNITS".
 """
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db.models import (
     CASCADE, SET_NULL,
@@ -69,15 +70,16 @@ class Ingredients(Model):
 
     Сортировка производит в алфавитом порядке по возрастанию.
 
-    Атрибуты
-        name: str
-            уникальное название ингредиента
-        measurement_unit: str
-            единица измерения ингредиента
-            (должна содержаться в установленном списке единиц "UNITS")
-
-    Индексируемые атрибуты:
-        name
+    Атрибуты:
+        - name: str
+            - уникальное название ингредиента
+            - установлено ограничение по длине
+            - установлено ограничение по уникальности
+            - индексируется
+        - measurement_unit: str
+            - единица измерения ингредиента
+            - установлено ограничение по длине
+            - установлено ограничение выбора значения согласно списку "UNITS"
     """
     name = CharField(
         db_index=True,
@@ -111,11 +113,15 @@ class Tags(Model):
 
     Сортировка производит в алфавитом порядке по возрастанию (АБВ).
 
-    Атрибуты
-        name: str
-            уникальное название тега
-        color: str
-            уникальное значение цвета тега в формате HEX (#RGB или #RRGGBB)
+    Атрибуты:
+        - color: str
+            - уникальное значение цвета тега в формате HEX (#RGB или #RRGGBB)
+
+        - name: str
+            - уникальное название тега
+            - установлено ограничение по длине
+            - установлено ограничение по уникальности
+            - индексируется
         slug: str
             уникальное значение для формирование URL тега
 
@@ -147,7 +153,19 @@ class Tags(Model):
     def __str__(self):
         return f'{self.name} ({self.slug})'
 
+    def _validate_hex_format(self) -> str:
+        """Производит валидацию значения цветового HEX кода: приводит его к
+        формату #RRGGBB. Возвращает 6-значный цветовой код."""
+        if self.color and len(self.color) == 4:
+            self.color = (
+                f'#{self.color[1]*2}{self.color[2]*2}{self.color[3]*2}')
+        return
+
     def save(self, *args, **kwargs):
+        """Переопределяет метод сохранения модели:
+            - производит дополнительную валидацию поля "color";
+            - вызывает метод full_clean()."""
+        self._validate_hex_format()
         self.full_clean()
         super().save(*args, **kwargs)
 
@@ -161,45 +179,47 @@ class Recipes(Model):
 
     Сортировка производится по дате публикации от новых к старым.
 
-    Атрибуты
-        author: int
-            ID автора рецепта
-            связь через ForeignKey к модели "User"
-        cooking_time: int
-            время приготовления рецепта (в минутах)
-        image: str
-            картинка рецепта (Base64)
-        ingredients:
-            список ингредиентов
-            связь через ManyToManyField и таблицу 'RecipesIngredients'
-        name: str
-            уникальное название рецепта
-        tags:
-            список тегов
-            связь через ManyToManyField и таблицу 'RecipesTags'
-        text: str
-            текстовое описание рецепта
-
-    Индексируемые атрибуты:
-        name
+    Атрибуты:
+        - author: int
+            - ID автора рецепта
+            - связь через ForeignKey к модели "User"
+            - при удалении пользователя удаляются все рецепты
+        - cooking_time: int
+            - время приготовления рецепта (в минутах)
+            - установлено ограничение по значению: не менее 1
+        - image: str
+            - картинка рецепта (Base64)
+        - ingredients:
+            - список ингредиентов
+            - связь через ManyToManyField и таблицу 'RecipesIngredients'
+        - name: str
+            - уникальное название рецепта
+            - установлено ограничение по длине
+            - установлено ограничение по уникальности
+            - индексируется
+        - tags:
+            - список тегов
+            - связь через ManyToManyField и таблицу 'RecipesTags'
+        - text: str
+            - текстовое описание рецепта
     """
     author = ForeignKey(
-        User,
         on_delete=CASCADE,
         related_name='recipe_author',
+        to=User,
         verbose_name='Автор')
     cooking_time = IntegerField(
         validators=[
             MinValueValidator(
                 limit_value=1,
-                message='Время должно быть равно 1 или более минут!')],
+                message='Время должно составлять не менее 1 минуты!')],
         verbose_name='Время приготовления (в минутах)')
     image = ImageField(
         upload_to=RECIPES_MEDIA_ROOT,
         verbose_name='Картинка рецепта')
     ingredients = ManyToManyField(
-        Ingredients,
         through='RecipesIngredients',
+        to=Ingredients,
         verbose_name='Ингредиенты')
     name = CharField(
         db_index=True,
@@ -207,7 +227,8 @@ class Recipes(Model):
         unique=True,
         verbose_name='Название')
     tags = ManyToManyField(
-        Tags,
+        related_name='recipes',
+        to=Tags,
         through='RecipesTags',
         verbose_name='Теги')
     text = TextField(
@@ -237,23 +258,25 @@ class RecipesFavorites(Model):
 
     Сортировка производится по дате добавления по убыванию от новых к старым.
 
-    Атрибуты
-        user: int
-            ID пользователя
-            связь через ForeignKey к модели "User"
-        recipe: int
-            ID рецепта
-            связь через ForeignKey к модели "Recipes"
+    Атрибуты:
+        - user: int
+            - ID пользователя
+            - связь через ForeignKey к модели "User"
+        - recipe: int
+            - ID рецепта
+            - связь через ForeignKey к модели "Recipes"
+
+    Атрибуты проходят проверку на уникальное сочетание.
     """
     user = ForeignKey(
-        User,
         on_delete=CASCADE,
         related_name='user_recipe_favorite',
+        to=User,
         verbose_name='Пользователь')
     recipe = ForeignKey(
-        Recipes,
         on_delete=CASCADE,
         related_name='recipe_favorite_user',
+        to=Recipes,
         verbose_name='Рецепт')
 
     class Meta:
@@ -286,25 +309,27 @@ class RecipesIngredients(Model):
     Сортировка производится по названию рецепта и названию ингредиента
     по возрастанию.
 
-    Атрибуты
-        ingredient: int
-            ID ингредиента
-            связь через ForeignKey к модели "Ingredients"
-        recipe: int
-            ID рецепта
-            связь через ForeignKey к модели "Recipes"
+    Атрибуты:
+        - ingredient: int
+            - ID ингредиента
+            - связь через ForeignKey к модели "Ingredients"
+        - recipe: int
+            - ID рецепта
+            - связь через ForeignKey к модели "Recipes"
+
+    Атрибуты проходят проверку на уникальное сочетание.
     """
     amount = FloatField(
         verbose_name='Количество')
     ingredient = ForeignKey(
-        Ingredients,
         on_delete=CASCADE,
         related_name='ingredient_recipe',
+        to=Ingredients,
         verbose_name='Ингредиент')
     recipe = ForeignKey(
-        Recipes,
         on_delete=CASCADE,
         related_name='recipe_ingredient',
+        to=Recipes,
         verbose_name='Рецепт')
 
     class Meta:
@@ -335,27 +360,29 @@ class RecipesTags(Model):
 
     Сортировка производится по названию рецепта и названию тега по возрастанию.
 
-    Атрибуты
-        recipe: int
-            ID рецепта
-            связь через ForeignKey к модели "Recipes"
-        tag: int
-            ID тега
-            связь через ForeignKey к модели "Tags"
+    Атрибуты:
+        - recipe: int
+            - ID рецепта
+            - связь через ForeignKey к модели "Recipes"
+        - tag: int
+            - ID тега
+            - связь через ForeignKey к модели "Tags"
+
+    Атрибуты проходят проверку на уникальное сочетание.
     """
     recipe = ForeignKey(
-        Recipes,
         blank=True,
         null=True,
         on_delete=SET_NULL,
         related_name='recipe_tag',
+        to=Recipes,
         verbose_name='Рецепт')
     tag = ForeignKey(
-        Tags,
         blank=True,
         null=True,
         on_delete=SET_NULL,
         related_name='tag_recipe',
+        to=Tags,
         verbose_name='Тег')
 
     class Meta:
@@ -386,24 +413,24 @@ class ShoppingCarts(Model):
 
     Сортировка производится по пользователю и рецепту по возрастанию.
 
-    Атрибуты
-        user: int
-            ID пользователя
-            связь через ForeignKey к модели "User"
-        cart_item: int
-            ID рецепта, добавленный в корзину
-            связь через ForeignKey к модели "Recipes"
+    Атрибуты:
+        - user: int
+            - ID пользователя
+            - связь через ForeignKey к модели "User"
+        - cart_item: int
+            - ID рецепта, добавленный в корзину
+            - связь через ForeignKey к модели "Recipes"
     """
     user = ForeignKey(
-        User,
         on_delete=CASCADE,
         related_name='shopping_cart',
+        to=User,
         verbose_name='Корзина пользователя')
     cart_item = ForeignKey(
-        Recipes,
         blank=True,
         null=True,
         on_delete=SET_NULL,
+        to=Recipes,
         related_name='shopping_cart',
         verbose_name='Рецепт в корзине')
 
@@ -430,29 +457,29 @@ class Subscriptions(Model):
 
     Сортировка производится по дате подписки по убыванию от новых к старым.
 
-    Атрибуты
-        subscriber: int
-            ID пользователя, осуществляющего подписку
-            связь через ForeignKey к модели "User"
-        subscription_to: int
-            ID пользователя, на которого осуществляется подписка
-            связь через ForeignKey к модели "User"
+    Атрибуты:
+        - subscriber: int
+            - ID пользователя, осуществляющего подписку
+            - связь через ForeignKey к модели "User"
+        - subscription_to: int
+            - ID пользователя, на которого осуществляется подписка
+            - связь через ForeignKey к модели "User"
+
+    Проверяет уникальность подписки одного пользователя на другого.
+    Допускает взаимные подписки.
     """
     subscriber = ForeignKey(
-        User,
         on_delete=CASCADE,
         related_name='subscriber',
+        to=User,
         verbose_name='Подписчик')
     subscription_to = ForeignKey(
-        User,
         on_delete=CASCADE,
         related_name='subscription_author',
+        to=User,
         verbose_name='Автор на которого подписка')
 
     class Meta:
-        # Проверка на UniqueConstraint не может быть произведена,
-        # так как подписки должны работать в обе стороны.
-        # Функционал реализован в сериализаторе SubscriptionsSerializer.
         ordering = ('-id', )
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки на авторов'
@@ -462,6 +489,17 @@ class Subscriptions(Model):
             f'Подписка {self.subscriber.username} '
             f'на {self.subscription_to.username}')
 
+    @staticmethod
+    def _validate_unique_subscription(self):
+        """Проверяет уникальность подписки user_1 на user_2."""
+        if Subscriptions.objects.filter(
+                subscriber=self.subscriber,
+                subscription_to=self.subscription_to).exists():
+            raise ValidationError(
+                'Подписка между данными пользователями уже существует!')
+        return
+
     def save(self, *args, **kwargs):
         self.full_clean()
+        self._validate_unique_subscription(self)
         super().save(*args, **kwargs)
