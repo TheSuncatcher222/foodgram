@@ -11,7 +11,7 @@ from django.db.models import CASCADE, SET_NULL
 
 from footgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
-    RecipesTags, ShoppingCarts, Subscriptions, Tags)
+    RecipesTags, ShoppingCarts, Subscriptions, Tags, User)
 
 IMAGE_BYTES: bytes = (
     b'\x47\x49\x46\x38\x39\x61\x02\x00'
@@ -406,8 +406,7 @@ class TestRecipesModel():
                 name='test_recipe_name',
                 text='test_recipe_text')
         assert str(err.value) == (
-            "{'cooking_time': ['Убедитесь, что это значение больше либо "
-            "равно 1.'], "
+            "{'cooking_time': ['Время должно составлять не менее 1 минуты!'], "
             "'image': ['Это поле не может быть пустым.']}")
         return
 
