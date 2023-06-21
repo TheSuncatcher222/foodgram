@@ -1,4 +1,7 @@
+import csv
+
 from django.contrib.auth.models import User
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -8,8 +11,8 @@ from rest_framework.viewsets import ModelViewSet
 from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
     CustomUserSerializer, IngredientsSerializer, RecipesSerializer,
-    TagsSerializer)
-from footgram_app.models import Ingredients, Tags, Recipes
+    ShoppingCarts, TagsSerializer)
+from footgram_app.models import Ingredients, Tags, Recipes, RecipesIngredients
 
 
 class CustomUserViewSet(ModelViewSet):
@@ -38,12 +41,11 @@ class CustomUserViewSet(ModelViewSet):
         queryset = queryset.order_by('id')
         return queryset
 
-    @action(
-        detail=False,
-        methods=('get',),
-        url_path='me',
-        permission_classes=(IsAuthenticated,),
-        serializer_class=CustomUserSerializer)
+    @action(detail=False,
+            methods=('get',),
+            url_path='me',
+            permission_classes=(IsAuthenticated,),
+            serializer_class=CustomUserSerializer)
     def me(self, request):
         """Добавляет action-эндпоинт `.../users/me/`."""
         serializer = self.get_serializer(request.user)
@@ -78,6 +80,43 @@ class RecipesViewSet(ModelViewSet):
     permission_classes = (IsAuthorOrAdminOrReadOnly,)
     serializer_class = RecipesSerializer
     queryset = Recipes.objects.all()
+
+    @action(detail=False,
+            methods=('get',),
+            url_path='download_shopping_cart',
+            permission_classes=(IsAuthenticated,),
+            serializer_class=CustomUserSerializer)
+    def download_shopping_cart(self, request):
+        user: User = request.user
+        shopping_carts: list[ShoppingCarts] = (
+            ShoppingCarts.objects.filter(user=user))
+        items: dict = {}
+        for cart in shopping_carts:
+            recipe: Recipes = cart.cart_item
+            recipes_ingredients: list[RecipesIngredients] = (
+                RecipesIngredients.objects.filter(recipe=recipe))
+            for recipe_ingredient in recipes_ingredients:
+                ingredient = recipe_ingredient.ingredient
+                ingredient_name: str = ingredient.name
+                if ingredient_name not in items:
+                    items[ingredient_name] = {
+                        'name': ingredient_name,
+                        'measurement_unit': ingredient.measurement_unit,
+                        'amount': 0}
+                items[ingredient_name]['amount'] += recipe_ingredient.amount
+        csv_data: list[tuple[str]] = [('name', 'measurement_unit', 'amount')]
+        for ingredient_data in items.values():
+            csv_data.append((
+                ingredient_data['name'],
+                ingredient_data['measurement_unit'],
+                ingredient_data['amount'],))
+        response: HttpResponse = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping_cart.csv"')
+        writer: csv = csv.writer(response)
+        for row in csv_data:
+            writer.writerow(row)
+        return response
 
 
 class TagsViewSet(ModelViewSet):
