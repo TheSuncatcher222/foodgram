@@ -233,7 +233,6 @@ class TestCustomUserViewSet():
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
-
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_users_post_allow_create(self, client_func) -> None:
         """Тест POST-запроса на создание нового пользователя по эндпоинту
@@ -313,6 +312,100 @@ class TestCustomUserViewSet():
             'first_name': 'test_user_first_name_2',
             'last_name': 'test_user_last_name_2',
             'is_subscribed': True}
+        return
+
+    @pytest.mark.parametrize('user_id, status_code, expected_data', [
+        (1,
+         status.HTTP_400_BAD_REQUEST,
+         {'non_field_errors':
+          ['Вы не можете подписаться на себя.']}),
+        (2,
+         status.HTTP_400_BAD_REQUEST,
+         {'non_field_errors':
+          ['Вы уже подписаны на пользователя test_user_username_2.']}),
+        (3,
+         status.HTTP_200_OK,
+         {'email': 'test_user_email_3@email.com',
+          'id': 3,
+          'username': 'test_user_username_3',
+          'first_name': 'test_user_first_name_3',
+          'last_name': 'test_user_last_name_3',
+          'is_subscribed': True,
+          'recipes_count': 0,
+          'recipes': []}),
+        (4,
+         status.HTTP_404_NOT_FOUND,
+         {'detail':
+          'Страница не найдена.'})])
+    def test_users_pk_subscribe(
+            self,
+            user_id: int,
+            status_code: status,
+            expected_data: dict,
+            create_users) -> None:
+        """Тест POST-запроса на создание подписки на пользователя по эндпоинту
+        "/api/v1/users/{pk}/subscribe/".
+        В тесте создается подписка пользователя 1 на пользователя 2
+        и рассматриваются следующие возможные случаи:
+            1) пользователь 1 подписывается сам на себя;
+            2) пользователь 1 подписывается на пользователя 2 повторно;
+            3) пользователь 1 подписывается на пользователя 3;
+            4) пользователь 1 подписывается несуществующего пользователя."""
+        test_user: User = User.objects.get(id=1)
+        already_subscribed: User = User.objects.get(id=2)
+        Subscriptions.objects.create(
+            subscriber=test_user,
+            subscription_to=already_subscribed)
+        token, _ = Token.objects.get_or_create(user=test_user)
+        client: APIClient = anon_client()
+        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        response = client.post(path=f'{URL_USERS}{user_id}/subscribe/')
+        assert response.status_code == status_code
+        data: dict = json.loads(response.content)
+        assert data == expected_data
+        return
+
+    @pytest.mark.parametrize('user_id, status_code, expected_data', [
+        (2,
+         status.HTTP_204_NO_CONTENT,
+         {}),
+        (3,
+         status.HTTP_400_BAD_REQUEST,
+         {'non_field_errors':
+          ['Вы не были подписаны на пользователя test_user_username_3.']}),
+        (4,
+         status.HTTP_404_NOT_FOUND,
+         {'detail':
+          'Страница не найдена.'})])
+    def test_users_pk_unsubscribe(
+            self,
+            user_id: int,
+            status_code: status,
+            expected_data: dict,
+            create_users) -> None:
+        """Тест DELETE-запроса на удаление подписки на пользователя по
+        эндпоинту "/api/v1/users/{pk}/subscribe/".
+        В тесте создается подписка пользователя 1 на пользователя 2
+        и рассматриваются следующие возможные случаи:
+            1) пользователь 1 отписывается от существующей подписки;
+            2) пользователь 1 отписывается от несуществующей подписки;
+            3) пользователь 1 отписывается от несуществующего пользователя."""
+        test_user: User = User.objects.get(id=1)
+        already_subscribed: User = User.objects.get(id=2)
+        Subscriptions.objects.create(
+            subscriber=test_user,
+            subscription_to=already_subscribed)
+        token, _ = Token.objects.get_or_create(user=test_user)
+        client: APIClient = anon_client()
+        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        response = client.delete(path=f'{URL_USERS}{user_id}/subscribe/')
+        assert response.status_code == status_code
+        try:
+            data: dict = json.loads(response.content)
+        except json.decoder.JSONDecodeError:
+            """При статусе 204 возвращается ответ без контента."""
+            data: dict = {}
+        assert data == expected_data
         return
 
     def test_users_me_anon(self, create_users) -> None:
