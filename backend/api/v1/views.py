@@ -22,15 +22,20 @@ from footgram_app.models import (
 class CustomUserViewSet(ModelViewSet):
     """
     Вью-сет обрабатывает следующие эндпоинты:
-    1) ".../users/"      - предоставляет информацию о пользователях
-                           при GET запросе,
-                         - создает нового пользователя при POST запросе;
+    1) ".../users/" - предоставляет информацию о пользователях при GET запросе,
+                    - создает нового пользователя при POST запросе;
     2) ".../users/{pk}/" - предоставляет информацию о пользователе с ID=pk
                            при GET запросе.
     Дополнительные action-эндпоинты:
-    3) ".../users/me/"   - предоставляет информацию о текущем пользователе
-                           при GET запросе (доступно только
-                           авторизированному пользователю).
+    3) ".../users/me/" - предоставляет информацию о текущем пользователе
+                         при GET запросе (доступно только
+                         авторизированному пользователю);
+    4) ".../users/{pk}/subscribe/" - создает подписку на пользователя с ID=pk
+                                     при POST запросе;
+                                   - удаляет подписку на пользователя с ID=pk
+                                     при DELETE запросе;
+    5) ".../users/subscriptions/" - предоставляет информацию о пользователях,
+                                    на которых осуществлена подписка.
     """
     http_method_names = ('get', 'list', 'post', 'delete')
     serializer_class = CustomUserSerializer
@@ -79,18 +84,18 @@ class CustomUserViewSet(ModelViewSet):
 
     @action(detail=False,
             methods=('DELETE', 'POST'),
-            url_path=r'(?P<user_id>\d+)/subscribe',
+            url_path=r'(?P<pk>\d+)/subscribe',
             permission_classes=(IsAuthenticated,))
-    def subscribe(self, request, user_id: int):
-        """Добавляет action-эндпоинт ".../users/{user_id}/subscribe/":
-            - POST: создает подсписку пользователя на автора с id=user_id;
-            - DELETE: удаляет подписку пользователя на автора с id=user_id."""
+    def subscribe(self, request, pk: int):
+        """Добавляет action-эндпоинт ".../users/{pk}/subscribe/":
+            - POST: создает подсписку пользователя на автора с id=pk;
+            - DELETE: удаляет подписку пользователя на автора с id=pk."""
         subscriber: User = request.user
-        subscription_to: User = get_object_or_404(User, id=user_id)
+        subscription_to: User = get_object_or_404(User, id=pk)
         if request.method == 'DELETE':
             serializer = SubscriptionsDeleteSerializer(
                 data={'subscriber': subscriber.id,
-                      'subscription_to': user_id})
+                      'subscription_to': pk})
             serializer.is_valid(raise_exception=True)
             Subscriptions.objects.get(
                 subscriber=subscriber,
@@ -101,7 +106,7 @@ class CustomUserViewSet(ModelViewSet):
             serializer = SubscriptionsCreateSerializer(
                 data={
                     'subscriber': subscriber.id,
-                    'subscription_to': user_id})
+                    'subscription_to': pk})
             serializer.is_valid(raise_exception=True)
             Subscriptions.objects.create(
                 subscriber=subscriber,
@@ -128,13 +133,16 @@ class IngredientsViewSet(ModelViewSet):
 class RecipesViewSet(ModelViewSet):
     """
     Вью-сет обрабатывает следующие эндпоинты:
-    1) ".../recipes/"   - предоставляет информацию о рецептах при GET запросе;
-                        - создает рецепт при POST запросе;
-    2) ".../tags/{pk}/" - предоставляет информацию о рецепте с ID=pk
-                        - обновляет рецепт при PATCH запросе
-                          (доступно только автору рецепта);
-                        - удаляет рецепт при DELETE запросе
-                          (доступно только автору рецепта).
+    1) ".../recipes/" - предоставляет информацию о рецептах при GET запросе;
+                      - создает рецепт при POST запросе;
+    2) ".../recipes/{pk}/" - предоставляет информацию о рецепте с ID=pk
+                           - обновляет рецепт при PATCH запросе
+                             (доступно только автору рецепта);
+                           - удаляет рецепт при DELETE запросе
+                             (доступно только автору рецепта).
+    Дополнительные action-эндпоинты:
+    3) ".../recipes/download_shopping_cart/" - формирует csv файл с элементами
+                                               пользовательской корзины.
     """
     http_method_names = ('delete', 'get', 'list', 'patch', 'post')
     permission_classes = (IsAuthorOrAdminOrReadOnly,)
