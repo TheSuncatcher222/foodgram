@@ -22,8 +22,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.serializers import (
     ModelSerializer,
-    CharField, EmailField, IntegerField, ListField, PrimaryKeyRelatedField,
-    SerializerMethodField,
+    BooleanField, CharField, EmailField, IntegerField, ListField,
+    PrimaryKeyRelatedField, SerializerMethodField,
     SlugRelatedField,
     ValidationError)
 from footgram_app.models import (
@@ -119,6 +119,57 @@ class CustomUserSerializer(UserSerializer):
             raise ValidationError(
                 'Пользователь с таким именем уже существует.')
         return value
+
+
+class RecipesSerializerSubscriptions(ModelSerializer):
+    """Создает сериализатор для модели "Recipes".
+    Содержит в себе краткий перечень полей, необходимый для эндпоинта
+    подписок на авторов "/users/subscriptions/".
+    Используется в "CustomUserSubscriptionsSerializer". """
+
+    class Meta:
+        model = Recipes
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time')
+
+
+class CustomUserSubscriptionsSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Users".
+    Содержит в себе расширенный перечень полей, в который включены рецепты,
+    необходимый для эндпоинта подписок на авторов "/users/subscriptions/"."""
+
+    recipes = RecipesSerializerSubscriptions(
+        source='recipe_author',
+        many=True)
+    recipes_count = SerializerMethodField()
+    """Все объекты модели "User" эндпоинта обязательно являются
+    подписками пользователя."""
+    is_subscribed = BooleanField(default=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes_count',
+            'recipes')
+
+    def get_is_subscribed(self, obj):
+        """Передает в поле "is_subscribed" значение "True".
+        Все объекты модели "User" эндпоинта обязательно являются
+        подписками пользователя."""
+        return True
+
+    def get_recipes_count(self, obj):
+        """Возвращает количество рецептов у пользователя."""
+        return obj.recipe_author.all().count()
 
 
 class IngredientsSerializer(ModelSerializer):
