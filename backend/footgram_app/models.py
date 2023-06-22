@@ -323,6 +323,10 @@ class RecipesIngredients(Model):
     Атрибуты проходят проверку на уникальное сочетание.
     """
     amount = FloatField(
+        validators=[
+            MinValueValidator(
+                limit_value=0.01,
+                message='Укажите количество ингредиента!')],
         verbose_name='Количество')
     ingredient = ForeignKey(
         on_delete=CASCADE,
