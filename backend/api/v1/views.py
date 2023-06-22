@@ -87,9 +87,16 @@ class RecipesViewSet(ModelViewSet):
             permission_classes=(IsAuthenticated,),
             serializer_class=CustomUserSerializer)
     def download_shopping_cart(self, request):
+        """Добавляет action-эндпоинт `.../recipes/download_shopping_cart/`.
+        Формирует "shopping_cart.csv", который содержит в себе данные
+        об ингредиентах рецептов в корзине пользователя со столбцами:
+            - name: str, название ингредиента;
+            - measurement_unit: str, единица измерения ингредиента;
+            - amount: float, количество ингредиента."""
         user: User = request.user
         shopping_carts: list[ShoppingCarts] = (
-            ShoppingCarts.objects.filter(user=user))
+            ShoppingCarts.objects.filter(
+                user=user).select_related('cart_item'))
         items: dict = {}
         for cart in shopping_carts:
             recipe: Recipes = cart.cart_item
