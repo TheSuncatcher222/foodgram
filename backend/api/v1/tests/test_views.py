@@ -17,8 +17,8 @@ from footgram_app.models import (
     Ingredients, Recipes, Subscriptions, Tags)
 from footgram_app.tests.test_models import (
     create_ingredient_obj, create_recipe_ingredient_obj, create_recipe_obj,
-    create_recipe_tag_obj, create_tag_obj, create_user_obj,
-    create_user_obj_with_hash)
+    create_recipe_tag_obj, create_shopping_cart_obj, create_tag_obj,
+    create_user_obj, create_user_obj_with_hash)
 
 URL_API_V1: str = '/api/v1/'
 URL_AUTH: str = f'{URL_API_V1}auth/token/'
@@ -45,6 +45,16 @@ def auth_client() -> APIClient:
     auth_client = APIClient()
     auth_client.force_authenticate(user=None)
     return auth_client
+
+
+def auth_token_client(user: User) -> APIClient:
+    """Возвращает объект авторизированного клиента c токеном.
+    Токен записывается в заголовок запросов и применяется автоматически.
+    Токен формируется для переданного экземпляра модели "Users"."""
+    token, _ = Token.objects.get_or_create(user=user)
+    auth_token_client: APIClient = anon_client()
+    auth_token_client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+    return auth_token_client
 
 
 @pytest.fixture()
@@ -356,9 +366,7 @@ class TestCustomUserViewSet():
         Subscriptions.objects.create(
             subscriber=test_user,
             subscription_to=already_subscribed)
-        token, _ = Token.objects.get_or_create(user=test_user)
-        client: APIClient = anon_client()
-        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        client: APIClient = auth_token_client(user=test_user)
         response = client.post(path=f'{URL_USERS}{user_id}/subscribe/')
         assert response.status_code == status_code
         data: dict = json.loads(response.content)
@@ -395,9 +403,7 @@ class TestCustomUserViewSet():
         Subscriptions.objects.create(
             subscriber=test_user,
             subscription_to=already_subscribed)
-        token, _ = Token.objects.get_or_create(user=test_user)
-        client: APIClient = anon_client()
-        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        client: APIClient = auth_token_client(user=test_user)
         response = client.delete(path=f'{URL_USERS}{user_id}/subscribe/')
         assert response.status_code == status_code
         try:
@@ -457,9 +463,7 @@ class TestCustomUserViewSet():
         """Тест POST-запроса на страницу изменения пароля по эндпоинту
         "/api/users/set_password/" для авторизованного клиента."""
         test_user: User = create_user_obj_with_hash(num=1)
-        token, _ = Token.objects.get_or_create(user=test_user)
-        client: APIClient = anon_client()
-        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        client: APIClient = auth_token_client(user=test_user)
         NEW_PASSWORD: str = 'some_new_data_pass'
         data: dict = {
             'current_password': 'test_user_password_1',
@@ -582,9 +586,7 @@ class TestRecipesViewSet():
         author_user: User = User.objects.get(id=ID_AUTHOR)
         author_user.is_staff = is_admin
         author_user.save()
-        token, _ = Token.objects.get_or_create(user=author_user)
-        client: APIClient = anon_client()
-        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        client: APIClient = auth_token_client(user=author_user)
         response = client.delete(f'{URL_RECIPES}{ID_AUTHOR}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
         response = client.delete(f'{URL_RECIPES}{ID_ANOTHER}/')
@@ -688,9 +690,7 @@ class TestRecipesViewSet():
         Используется фикстура "create_recipes_users" для наполнения тестовой БД
         рецептами с тегами и ингредиентами."""
         test_user: User = User.objects.get(id=1)
-        token, _ = Token.objects.get_or_create(user=test_user)
-        client: APIClient = anon_client()
-        client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        client: APIClient = auth_token_client(user=test_user)
         response = client.put(f'{URL_RECIPES}1/')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
@@ -717,9 +717,7 @@ class TestRecipesViewSet():
     #     users: dict[str, User] = {
     #         'author': author_user,
     #         'admin': admin_user}
-    #     token, _ = Token.objects.get_or_create(user=users[user])
-    #     client: APIClient = anon_client()
-    #     client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+    #     client: APIClient = auth_token_client(user=users[user])
     #     response = client.patch(f'{URL_RECIPES}{ID_TO_PATCH}/')
     #     assert response.status_code == response_code
     #     return
@@ -783,33 +781,42 @@ class TestRecipesViewSet():
     #     Используются фикстуры для наполнения тестовой БД:
     #         - create_tags: теги;
     #         - create_ingredients: ингредиенты."""
-    #     client: APIClient = anon_client()
     #     test_user: User = User.objects.get(id=1)
-    #     token, _ = Token.objects.get_or_create(user=test_user)
-    #     client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+    #     client: APIClient = auth_token_client(user=test_user)
     #     assert Recipes.objects.all().count() == 0
     #     response = client.post(
     #         URL_RECIPES, json.dumps(data), content_type='application/json')
     #     #assert response.status_code == status.HTTP_201_CREATED
     #     #data = json.loads(response.content)
     #     assert response.content == 1
+    #     return
 
-    @pytest.mark.parametrize('user, response_code', [
-        ('auth_user', status.HTTP_405_METHOD_NOT_ALLOWED),
-        ('anon_user', status.HTTP_401_UNAUTHORIZED)])
-    def test_tags_put_allowed_method(
-            self, user: str, response_code: status, create_users) -> None:
-        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/tags/":
-            - PUT."""
-        auth_user = User.objects.get(id=1)
-        token, _ = Token.objects.get_or_create(user=auth_user)
-        users_tokens: dict[str, User] = {
-            'auth_user': token,
-            'anon_user': ''}
-        client: APIClient = anon_client()
-        client.credentials(HTTP_AUTHORIZATION=f'Token {users_tokens[user]}')
-        response = client.put(f'{URL_RECIPES}1/')
-        assert response.status_code == response_code
+    def test_shopping_cart_csv(self, create_recipes_ingredients_tags_users):
+        """Тест GET-запроса на загрузку списка ингридиентов из пользовательской
+        корзины по эндпоинту "/api/v1/recipes/download_shopping_cart/"
+        в формате csv."""
+        assert Recipes.objects.all().count() == 3
+        test_user = User.objects.get(id=1)
+        for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+            create_shopping_cart_obj(
+                recipe=Recipes.objects.get(id=i),
+                user=test_user)
+        client: APIClient = auth_token_client(user=test_user)
+        response = client.get(path=f'{URL_RECIPES}download_shopping_cart/')
+        assert response.status_code == status.HTTP_200_OK
+        """Запрещается смешивание байтовых и не байтовых литералов в одной
+        строке. В связи с этим, все строки необходимо привести к байтовым
+        литералам. Они не поддерживают русский язык, необходимо представить
+        "батон" как "\xd0\xb1\xd0\xb0\xd1\x82\xd0\xbe\xd0\xbd"."""
+        assert response.content == (
+            b'name,measurement_unit,amount\r\n'
+            b'test_ingredient_name_3,'
+            b'\xd0\xb1\xd0\xb0\xd1\x82\xd0\xbe\xd0\xbd,3.0\r\n'
+            b'test_ingredient_name_2,'
+            b'\xd0\xb1\xd0\xb0\xd1\x82\xd0\xbe\xd0\xbd,2.0\r\n'
+            b'test_ingredient_name_1,'
+            b'\xd0\xb1\xd0\xb0\xd1\x82\xd0\xbe\xd0\xbd,1.0\r\n')
+        assert response.headers['Content-Type'] == 'text/csv'
         return
 
 
