@@ -46,11 +46,12 @@ class TestEndpointAvailability():
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
         return
 
-    @pytest.mark.parametrize('url', ['', '1/'])
+    @pytest.mark.parametrize('url', ['', '1/', 'download_shopping_cart/'])
     def test_recipes_endpoint(self, url):
         """Тест доступности эндпоинтов:
             - /api/v1/recipes/;
-            - /api/v1/recipes/{pk}/."""
+            - /api/v1/recipes/{pk}/;
+            - /api/v1/recipes/download_shopping_cart/"""
         test_user: User = create_user_obj(num=1)
         create_recipe_obj(num=1, user=test_user)
         response = self.client().get(f'/api/v1/recipes/{url}')
@@ -67,13 +68,16 @@ class TestEndpointAvailability():
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
         return
 
-    @pytest.mark.parametrize('url', ['', 'me/', '1/', 'set_password/'])
+    @pytest.mark.parametrize('url', [
+        '', 'me/', '1/', '1/subscribe/', 'set_password/', 'subscriptions/'])
     def test_users_endpoint(self, url):
         """Тест доступности эндпоинтов:
             - /api/v1/users/;
             - /api/v1/users/me/;
             - /api/v1/users/{pk}/;
-            - /api/v1/users/set_password/."""
+            - /api/v1/users/{pk}/subscribe/;
+            - /api/v1/users/set_password/;
+            - /api/v1/users/subscriptions/."""
         create_user_obj(num=1)
         response = self.client().get(f'/api/v1/users/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
