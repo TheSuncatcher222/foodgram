@@ -221,15 +221,18 @@ class TestCustomUserViewSet():
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     @pytest.mark.parametrize('method', ['delete', 'patch', 'put'])
     def test_users_not_allowed_methods(
-            self, client_func, method) -> None:
-        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/":
+            self, client_func, method, create_users) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/{pk}":
             - DELETE;
             - PATCH;
-            - PUT."""
+            - PUT.
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями."""
         client: APIClient = client_func()
-        response = getattr(client, method)(URL_TAGS)
+        response = getattr(client, method)(f'{URL_TAGS}1/')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
+
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_users_post_allow_create(self, client_func) -> None:
