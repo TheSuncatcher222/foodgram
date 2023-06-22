@@ -10,9 +10,11 @@ from rest_framework.viewsets import ModelViewSet
 
 from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
-    CustomUserSerializer, IngredientsSerializer, RecipesSerializer,
-    ShoppingCarts, TagsSerializer)
-from footgram_app.models import Ingredients, Tags, Recipes, RecipesIngredients
+    CustomUserSerializer, CustomUserSubscriptionsSerializer,
+    IngredientsSerializer, RecipesSerializer, TagsSerializer)
+from footgram_app.models import (
+    Ingredients, Tags, Recipes, RecipesIngredients, ShoppingCarts,
+    Subscriptions)
 
 
 class CustomUserViewSet(ModelViewSet):
@@ -49,6 +51,22 @@ class CustomUserViewSet(ModelViewSet):
     def me(self, request):
         """Добавляет action-эндпоинт `.../users/me/`."""
         serializer = self.get_serializer(request.user)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False,
+            methods=('get',),
+            url_path='subscriptions',
+            permission_classes=(IsAuthenticated,),
+            serializer_class=CustomUserSubscriptionsSerializer)
+    def subscriptions(self, request):
+        """Добавляет action-эндпоинт `.../users/subscriptions/`, возвращающий
+        пользователей, на которых подписан текущий пользователь. В выдачу
+        добавляются рецепты."""
+        subscriptions: Subscriptions = Subscriptions.objects.filter(
+            subscriber=request.user).select_related('subscription_to')
+        users: list[User] = [subscription.subscription_to
+                             for subscription in subscriptions]
+        serializer = self.get_serializer(users, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
