@@ -402,6 +402,58 @@ class ShoppingCartsSerializer(ModelSerializer):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class SubscriptionsSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Subscriptions"."""
+
+    class Meta:
+        model = Subscriptions
+        fields = (
+            'subscriber',
+            'subscription_to')
+
+
+class SubscriptionsCreateSerializer(SubscriptionsSerializer):
+    """Дополняет сериализатор "SubscriptionsSerializer:
+    добавляет валидацию данных."""
+
+    def validate(self, data):
+        """Производит валидацию данных:
+            - проверяет, что пользователь "subscriber" не подписывается
+              сам на себя;
+            - проверяет, что пользователь "subscriber" не осуществляет
+              повторную подписку на пользователя "subscription_to"."""
+        subscriber: User = data['subscriber']
+        subscription_to: User = data['subscription_to']
+        if subscriber.id == subscription_to.id:
+            raise ValidationError("Вы не можете подписаться на себя.")
+        if Subscriptions.objects.filter(
+                subscriber=subscriber,
+                subscription_to=subscription_to).exists():
+            raise ValidationError(
+                "Вы уже подписаны на пользователя "
+                f"{subscription_to.username}.")
+        return data
+
+
+class SubscriptionsDeleteSerializer(SubscriptionsSerializer):
+    """Дополняет сериализатор "SubscriptionsSerializer:
+    добавляет валидацию данных."""
+
+    def validate(self, data):
+        """Производит валидацию данных:
+            - проверяет, что пользователь "subscriber" имеет подписку
+              на пользователя "subscription_to"."""
+        subscriber: User = data['subscriber']
+        subscription_to: User = data['subscription_to']
+        if not Subscriptions.objects.filter(
+                subscriber=subscriber,
+                subscription_to=subscription_to).exists():
+            raise ValidationError(
+                "Вы не были подписаны на пользователя "
+                f"{subscription_to.username}.")
+        return data
+
+
 class TagsSerializer(ModelSerializer):
     """Создает сериализатор для модели "Tags"."""
 
