@@ -1,15 +1,17 @@
+import pytest
+
 from rest_framework.serializers import (
     Serializer, ListSerializer,
     Field,
-    SerializerMethodField,
     BooleanField, CharField, ChoiceField, ImageField, FloatField,
-    EmailField, IntegerField, SlugField)
-
+    EmailField, IntegerField, SerializerMethodField, SlugField)
 from api.v1.serializers import (
     CustomUserSerializer, CustomUserSubscriptionsSerializer,
-    IngredientsSerializer, PrimaryKeyRelatedField, RecipesShortSerializer,
-    ShoppingCartsSerializer, SubscriptionsSerializer, TagsIdListSerializer,
-    TagsSerializer)
+    IngredientsSerializer, PrimaryKeyRelatedField, RecipesSerializer,
+    RecipesIngredientsSerializer, RecipesIngredientsCreateSerializer,
+    RecipesFavoritesSerializer, RecipesShortSerializer,
+    ShoppingCartsSerializer, SubscriptionsSerializer,
+    TagsIdListSerializer, TagsSerializer)
 
 
 def serializer_fields_check(
@@ -40,7 +42,7 @@ def test_custom_user_serializer() -> None:
 
 def test_custom_user_subscriptions_serializer() -> None:
     """Тестирует поля сериализатора "CustomUserSubscriptionsSerializer"."""
-    expected_fields: dict[str, any] = {
+    expected_fields = {
         'email': EmailField,
         'id': IntegerField,
         'username': CharField,
@@ -64,6 +66,66 @@ def test_ingredients_serializer() -> None:
     serializer_fields_check(
         expected_fields=expected_fields,
         serializer=IngredientsSerializer())
+    return
+
+
+# ToDo: выполнить указание в @pytest.mark и запустить тест
+@pytest.mark.skip(reason=(
+    "Test will be failed. Need to replace \"self.context['request'].method\""
+    "in serializers.py with \"self.context['request_method']\""))
+def test_recipes_serializer() -> None:
+    """Тестирует поля сериализатора "RecipesSerializer"."""
+    expected_fields = {
+        'id': IntegerField,
+        'tags': ListSerializer,
+        'author': PrimaryKeyRelatedField,
+        'ingredients': ListSerializer,
+        'is_favorited': BooleanField,
+        'is_in_shopping_cart': BooleanField,
+        'name': CharField,
+        'image': ImageField,
+        'text': CharField,
+        'cooking_time': IntegerField}
+    serializer_fields_check(
+        expected_fields=expected_fields,
+        serializer=RecipesSerializer(request={'request_method': 'GET'}))
+    return
+
+
+def test_recipes_ingredients_serializer() -> None:
+    """Тестирует поля сериализатора "RecipesIngredientsSerializer"."""
+    expected_fields = {
+        'id': IntegerField,
+        'name': CharField,
+        'measurement_unit': CharField,
+        'amount': FloatField}
+    serializer_fields_check(
+        expected_fields=expected_fields,
+        serializer=RecipesIngredientsSerializer())
+    return
+
+
+def test_recipes_ingredients_create_serializer() -> None:
+    """Тестирует поля сериализатора "RecipesIngredientsCreateSerializer"."""
+    expected_fields = {
+        'id': PrimaryKeyRelatedField,
+        'name': SerializerMethodField,
+        'measurement_unit': SerializerMethodField,
+        'amount': FloatField}
+    serializer_fields_check(
+        expected_fields=expected_fields,
+        serializer=RecipesIngredientsCreateSerializer())
+    return
+
+
+def test_recipes_favorites_serializer() -> None:
+    """Тестирует поля сериализатора "RecipesFavoritesSerializer"."""
+    expected_fields = {
+        'user': PrimaryKeyRelatedField,
+        'recipe': PrimaryKeyRelatedField}
+    serializer_fields_check(
+        expected_fields=expected_fields,
+        serializer=RecipesFavoritesSerializer())
     return
 
 
@@ -120,30 +182,3 @@ def test_tags_id_list_serializer() -> None:
     Сериализатор представляет собой объект "ListField"."""
     serializer: Field = TagsIdListSerializer()
     assert isinstance(serializer.child, IntegerField)
-
-
-"""В разработке."""
-
-
-# ToDo: разработать тест
-def test_recipes_ingredients_serializer() -> None:
-    """Тестирует поля сериализатора "RecipesIngredientsSerializer"."""
-    pass
-
-
-# ToDo: разработать тест
-def test_recipes_ingredients_create_serializer() -> None:
-    """Тестирует поля сериализатора "RecipesIngredientsCreateSerializer"."""
-    pass
-
-
-# ToDo: разработать тест
-def test_recipes_serializer() -> None:
-    """Тестирует поля сериализатора "RecipesSerializer"."""
-    pass
-
-
-# ToDo: разработать тест
-def test_recipes_favorites_serializer() -> None:
-    """Тестирует поля сериализатора "RecipesFavoritesSerializer"."""
-    pass
