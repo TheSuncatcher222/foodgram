@@ -12,8 +12,8 @@ from rest_framework.viewsets import ModelViewSet
 from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
     CustomUserSerializer, CustomUserSubscriptionsSerializer,
-    IngredientsSerializer, RecipesSerializer, SubscriptionsCreateSerializer,
-    SubscriptionsDeleteSerializer, TagsSerializer)
+    IngredientsSerializer, RecipesSerializer, RecipesShortSerializer,
+    ShoppingCartsSerializer, SubscriptionsSerializer, TagsSerializer)
 from footgram_app.models import (
     Ingredients, Tags, Recipes, RecipesIngredients, ShoppingCarts,
     Subscriptions)
@@ -92,22 +92,17 @@ class CustomUserViewSet(ModelViewSet):
             - DELETE: удаляет подписку пользователя на автора с id=pk."""
         subscriber: User = request.user
         subscription_to: User = get_object_or_404(User, id=pk)
-        if request.method == 'DELETE':
-            serializer = SubscriptionsDeleteSerializer(
+        serializer = SubscriptionsSerializer(
                 data={'subscriber': subscriber.id,
                       'subscription_to': pk})
-            serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True)
+        if request.method == 'DELETE':
             Subscriptions.objects.get(
                 subscriber=subscriber,
                 subscription_to=subscription_to).delete()
             data: None = None
             status_code: status = status.HTTP_204_NO_CONTENT
         elif request.method == 'POST':
-            serializer = SubscriptionsCreateSerializer(
-                data={
-                    'subscriber': subscriber.id,
-                    'subscription_to': pk})
-            serializer.is_valid(raise_exception=True)
             Subscriptions.objects.create(
                 subscriber=subscriber,
                 subscription_to=subscription_to)
@@ -192,6 +187,34 @@ class RecipesViewSet(ModelViewSet):
         for row in csv_data:
             writer.writerow(row)
         return response
+
+    @action(detail=False,
+            methods=('delete', 'post',),
+            url_path=r'(?P<pk>\d+)/shopping_cart',
+            permission_classes=(IsAuthenticated,))
+    def update_shopping_cart(self, request, pk: int):
+        """Добавляет action-эндпоинт ".../recipes/{pk}/shopping_cart/":
+            - POST: добавляет рецепт с id=pk в список покупок;
+            - DELETE: удаляет рецепт с id=pk из списка покупок."""
+        user: User = request.user
+        serializer = ShoppingCartsSerializer(
+            data={'user': user.id,
+                  'cart_item': pk},
+            context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        recipe: Recipes = Recipes.objects.get(id=pk)
+        if request.method == 'DELETE':
+            ShoppingCarts.objects.get(cart_item=recipe, user=user).delete()
+            data: None = None
+            status_code: status = status.HTTP_204_NO_CONTENT
+        elif request.method == 'POST':
+            ShoppingCarts.objects.create(cart_item=recipe, user=user)
+            serializer = RecipesShortSerializer(
+                instance=recipe,
+                context={'request': request})
+            data = serializer.data
+            status_code: status = status.HTTP_201_CREATED
+        return Response(data=data, status=status_code)
 
 
 class TagsViewSet(ModelViewSet):
