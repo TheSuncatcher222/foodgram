@@ -381,12 +381,31 @@ class RecipesFavoritesSerializer(ModelSerializer):
     добавление рецепта в избранное или удаление оттуда."""
 
     class Meta:
-        model = Recipes
+        model = RecipesFavorites
         fields = (
-            'id',
-            'name',
-            'image',
-            'cooking_time')
+            'user',
+            'recipe')
+
+    def validate(self, data):
+        """Производит валидацию данных:
+            - DELETE: проверяет, что пользователь "user" добавил рецепт
+              "recipe" в избранное;
+            - POST: проверяет, что пользователь "user" не добавляет
+              рецепт "recipe" в избранное повторно."""
+        user: User = data['user']
+        recipe: Recipes = data['recipe']
+        request_method: str = self.context['request'].method
+        if request_method == 'DELETE' and not RecipesFavorites.objects.filter(
+                recipe=recipe, user=user).exists():
+            raise ValidationError({
+                'recipe':
+                    ['Ошибка удаления. Рецепта нет в избранном.']})
+        elif request_method == 'POST' and RecipesFavorites.objects.filter(
+                recipe=recipe, user=user).exists():
+            raise ValidationError({
+                'recipe':
+                    ['Ошибка добавления. Рецепт уже находится в избранном.']})
+        return data
 
     def create(self, serializer):
         """Дополняет метод save() для записи в БД:
