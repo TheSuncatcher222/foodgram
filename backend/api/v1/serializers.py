@@ -407,46 +407,31 @@ class RecipesFavoritesSerializer(ModelSerializer):
 
 
 class ShoppingCartsSerializer(ModelSerializer):
-    """Создает сериализатор для модели "Recipes" в случае, если происходит
-    добавление рецепта в список покупок или удаление оттуда."""
+    """Создает сериализатор для модели "ShoppingCarts"."""
 
     class Meta:
-        model = Recipes
+        model = ShoppingCarts
         fields = (
-            'id',
-            'name',
-            'image',
-            'cooking_time')
+            'user',
+            'cart_item')
 
-    def create(self, serializer):
-        """Дополняет метод save() для записи в БД:
-            - добавляет запись в таблицу "ShoppingCarts"."""
-        recipe_id = self.kwargs['id']
-        recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
-        user: User = self.request.user
-        if ShoppingCarts.objects.filter(
+    def validate(self, data):
+        """Производит валидацию данных:
+            - DELETE: проверяет, что пользователь "user" имеет рецепт
+              "cart_item" в корзине;
+            - POST: проверяет, что пользователь "user" не добавляет
+              рецепт "cart_item" в корзину повторно."""
+        user: User = data['user']
+        recipe: Recipes = data['cart_item']
+        request_method: str = self.context['request'].method
+        if request_method == 'DELETE' and not ShoppingCarts.objects.filter(
+                cart_item=recipe, user=user).exists():
+            raise ValidationError('Ошибка удаления. Рецепта нет в корзине.')
+        elif request_method == 'POST' and ShoppingCarts.objects.filter(
                 cart_item=recipe, user=user).exists():
             raise ValidationError(
-                'Ошибка добавления. '
-                'Рецепт уже находится в корзине.')
-        ShoppingCarts.objects.create(recipe=recipe, user=user)
-        return
-
-    def destroy(self, request, *args, **kwargs):
-        """Дополняет метод destroy() для удаления из БД:
-            - удаляет запись из таблицы "ShoppingCarts"."""
-        recipe_id: int = self.kwargs['pk']
-        recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
-        user: User = self.request.user
-        if not ShoppingCarts.objects.filter(
-                recipe=recipe, user=user).exists():
-            raise ValidationError(
-                'Ошибка удаления. '
-                'Рецепта нет в корзине.')
-        recipe_favorite: ShoppingCarts = get_object_or_404(
-            ShoppingCarts, recipe=recipe_id, user=user)
-        recipe_favorite.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+                'Ошибка добавления. Рецепт уже находится в корзине.')
+        return data
 
 
 class SubscriptionsSerializer(ModelSerializer):
@@ -458,46 +443,35 @@ class SubscriptionsSerializer(ModelSerializer):
             'subscriber',
             'subscription_to')
 
-
-class SubscriptionsCreateSerializer(SubscriptionsSerializer):
-    """Дополняет сериализатор "SubscriptionsSerializer:
-    добавляет валидацию данных."""
-
     def validate(self, data):
         """Производит валидацию данных:
-            - проверяет, что пользователь "subscriber" не подписывается
-              сам на себя;
-            - проверяет, что пользователь "subscriber" не осуществляет
-              повторную подписку на пользователя "subscription_to"."""
+            - DELETE: 
+                - проверяет, что пользователь "subscriber" имеет подписку
+                  на пользователя "subscription_to".;
+            - POST: 
+                - проверяет, что пользователь "subscriber" не подписывается
+                  сам на себя;
+                - проверяет, что пользователь "subscriber" не осуществляет
+                  повторную подписку на пользователя "subscription_to"."""
         subscriber: User = data['subscriber']
         subscription_to: User = data['subscription_to']
-        if subscriber.id == subscription_to.id:
-            raise ValidationError("Вы не можете подписаться на себя.")
-        if Subscriptions.objects.filter(
-                subscriber=subscriber,
-                subscription_to=subscription_to).exists():
-            raise ValidationError(
-                "Вы уже подписаны на пользователя "
-                f"{subscription_to.username}.")
-        return data
+        request_method: str = self.context['request'].method
 
-
-class SubscriptionsDeleteSerializer(SubscriptionsSerializer):
-    """Дополняет сериализатор "SubscriptionsSerializer:
-    добавляет валидацию данных."""
-
-    def validate(self, data):
-        """Производит валидацию данных:
-            - проверяет, что пользователь "subscriber" имеет подписку
-              на пользователя "subscription_to"."""
-        subscriber: User = data['subscriber']
-        subscription_to: User = data['subscription_to']
-        if not Subscriptions.objects.filter(
+        if request_method == 'DELETE' and not Subscriptions.objects.filter(
                 subscriber=subscriber,
                 subscription_to=subscription_to).exists():
             raise ValidationError(
                 "Вы не были подписаны на пользователя "
                 f"{subscription_to.username}.")
+        elif request_method == 'POST':
+            if subscriber.id == subscription_to.id:
+                raise ValidationError("Вы не можете подписаться на себя.")
+            elif Subscriptions.objects.filter(
+                    subscriber=subscriber,
+                    subscription_to=subscription_to).exists():
+                raise ValidationError(
+                    "Вы уже подписаны на пользователя "
+                    f"{subscription_to.username}.")
         return data
 
 
