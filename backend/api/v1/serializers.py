@@ -120,7 +120,7 @@ class CustomUserSerializer(UserSerializer):
         return value
 
 
-class RecipesSerializerSubscriptions(ModelSerializer):
+class RecipesShortSerializer(ModelSerializer):
     """Создает сериализатор для модели "Recipes".
     Содержит в себе краткий перечень полей, необходимый для эндпоинта
     подписок на авторов "/users/subscriptions/".
@@ -140,7 +140,7 @@ class CustomUserSubscriptionsSerializer(ModelSerializer):
     Содержит в себе расширенный перечень полей, в который включены рецепты,
     необходимый для эндпоинта подписок на авторов "/users/subscriptions/"."""
 
-    recipes = RecipesSerializerSubscriptions(
+    recipes = RecipesShortSerializer(
         source='recipe_author',
         many=True)
     recipes_count = SerializerMethodField()
