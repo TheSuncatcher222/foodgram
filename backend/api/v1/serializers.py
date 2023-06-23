@@ -363,6 +363,19 @@ class RecipesSerializer(ModelSerializer):
         return representation
 
 
+class RecipesShortSerializer(ModelSerializer):
+    """Создает сериализатор для модели "Recipes" c ограниченным набором полей
+    для отображения в списке покупок."""
+
+    class Meta:
+        model = Recipes
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time')
+
+
 class RecipesFavoritesSerializer(ModelSerializer):
     """Создает сериализатор для модели "Recipes" в случае, если происходит
     добавление рецепта в избранное или удаление оттуда."""
@@ -445,10 +458,10 @@ class SubscriptionsSerializer(ModelSerializer):
 
     def validate(self, data):
         """Производит валидацию данных:
-            - DELETE: 
+            - DELETE:
                 - проверяет, что пользователь "subscriber" имеет подписку
                   на пользователя "subscription_to".;
-            - POST: 
+            - POST:
                 - проверяет, что пользователь "subscriber" не подписывается
                   сам на себя;
                 - проверяет, что пользователь "subscriber" не осуществляет
@@ -456,7 +469,6 @@ class SubscriptionsSerializer(ModelSerializer):
         subscriber: User = data['subscriber']
         subscription_to: User = data['subscription_to']
         request_method: str = self.context['request'].method
-
         if request_method == 'DELETE' and not Subscriptions.objects.filter(
                 subscriber=subscriber,
                 subscription_to=subscription_to).exists():
