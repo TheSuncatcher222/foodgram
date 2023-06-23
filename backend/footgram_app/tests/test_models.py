@@ -77,7 +77,7 @@ def create_shopping_cart_obj(recipe: Recipes, user: User) -> ShoppingCarts:
     """Создает и возвращает объект модели "ShoppingCarts"."""
     return ShoppingCarts.objects.create(
         user=user,
-        cart_item=recipe)
+        recipe=recipe)
 
 
 def create_subscription_obj(
@@ -237,8 +237,8 @@ class TestIngredientsModel():
         ingredient: Ingredients = create_ingredient_obj(num=1)
         assert str(ingredient) == 'test_ingredient_name_1 (батон)'
         assert ingredient._meta.ordering == ('name', )
-        assert ingredient._meta.verbose_name == 'ингредиент'
-        assert ingredient._meta.verbose_name_plural == 'ингредиенты'
+        assert ingredient._meta.verbose_name == 'Ингредиент'
+        assert ingredient._meta.verbose_name_plural == 'Ингредиенты'
         name = ingredient._meta.get_field('name')
         assert name.db_index
         assert name.verbose_name == 'Название'
@@ -302,7 +302,7 @@ class TestTagsModel():
         return
 
     def test_invalid_slug(self) -> None:
-        """Тестирует создание объекта с невалидным значением поля "name"."""
+        """Тестирует создание объекта с невалидным значением поля "slug"."""
         assert Tags.objects.all().count() == 0
         with pytest.raises(ValidationError) as err:
             Tags.objects.create(
@@ -396,8 +396,7 @@ class TestRecipesModel():
 
     def test_invalid_cooking_time(self) -> None:
         """Тестирует создание объекта с невалидным значением поля
-        "cooking_time".
-        Поле "image" оставляет пустым для упрощения теста."""
+        "cooking_time"."""
         test_user: User = create_user_obj(num=1)
         with pytest.raises(ValidationError) as err:
             Recipes.objects.create(
@@ -415,8 +414,7 @@ class TestRecipesModel():
         return
 
     def test_invalid_name(self) -> None:
-        """Тестирует создание объекта с невалидным значением поля "name".
-        Поле "image" оставляет пустым для упрощения теста."""
+        """Тестирует создание объекта с невалидным значением поля "name"."""
         test_user: User = create_user_obj(num=1)
         assert Recipes.objects.all().count() == 0
         with pytest.raises(ValidationError) as err:
@@ -498,7 +496,7 @@ class TestRecipesModel():
         assert author.remote_field.related_name == 'recipe_author'
         assert author.verbose_name == 'Автор'
         cooking_time = recipe._meta.get_field('cooking_time')
-        assert cooking_time.verbose_name == 'Время приготовления (в минутах)'
+        assert cooking_time.verbose_name == 'Время приготовления (мин.)'
         image = recipe._meta.get_field('image')
         assert image.verbose_name == 'Картинка рецепта'
         ingredients = recipe._meta.get_field('ingredients')
@@ -511,87 +509,6 @@ class TestRecipesModel():
         assert tags.verbose_name == 'Теги'
         text = recipe._meta.get_field('text')
         assert text.verbose_name == 'Описание'
-        return
-
-
-@pytest.mark.django_db
-class TestShoppingCartsModel():
-    """Производит тест модели "ShoppingCarts"."""
-
-    def test_valid_create(self) -> None:
-        """Тестирует возможность создания объекта с валидными данными."""
-        test_user: User = create_user_obj(num=1)
-        test_recipe: Recipes = create_recipe_obj(num=1, user=test_user)
-        assert ShoppingCarts.objects.all().count() == 0
-        shopping_cart = create_shopping_cart_obj(
-            recipe=test_recipe, user=test_user)
-        assert ShoppingCarts.objects.all().count() == 1
-        assert shopping_cart.user == test_user
-        assert shopping_cart.cart_item == test_recipe
-        return
-
-    def test_meta(self) -> None:
-        """Тестирует мета-данные модели и полей.
-        Тестирует строковое представление модели."""
-        test_user: User = create_user_obj(num=1)
-        test_recipe: Recipes = create_recipe_obj(num=1, user=test_user)
-        shopping_cart: ShoppingCarts = create_shopping_cart_obj(
-            recipe=test_recipe, user=test_user)
-        assert str(shopping_cart) == (
-            'test_user_username_1: "test_recipe_name_1 (1 мин.)"')
-        assert shopping_cart._meta.ordering == ('user', 'cart_item')
-        assert shopping_cart._meta.verbose_name == 'Список покупок'
-        assert shopping_cart._meta.verbose_name_plural == 'Списки покупок'
-        user = shopping_cart._meta.get_field('user')
-        assert user.remote_field.on_delete == CASCADE
-        assert user.remote_field.related_name == 'shopping_cart'
-        assert user.verbose_name == 'Корзина пользователя'
-        cart_item = shopping_cart._meta.get_field('cart_item')
-        assert cart_item.blank
-        assert cart_item.null
-        assert cart_item.remote_field.on_delete == SET_NULL
-        assert cart_item.remote_field.related_name == 'shopping_cart'
-        assert cart_item.verbose_name == 'Рецепт в корзине'
-        return
-
-
-@pytest.mark.django_db
-class TestSubscriptionsModel():
-    """Производит тест модели "Subscriptions"."""
-
-    def test_valid_create(self) -> None:
-        """Тестирует возможность создания объекта с валидными данными."""
-        test_user_1: User = create_user_obj(num=1)
-        test_user_2: User = create_user_obj(num=2)
-        assert Subscriptions.objects.all().count() == 0
-        subscription = create_subscription_obj(
-            subscriber=test_user_1, subscription_to=test_user_2)
-        assert Subscriptions.objects.all().count() == 1
-        assert subscription.subscriber == test_user_1
-        assert subscription.subscription_to == test_user_2
-        return
-
-    def test_meta(self) -> None:
-        """Тестирует мета-данные модели и полей.
-        Тестирует строковое представление модели."""
-        test_user_1: User = create_user_obj(num=1)
-        test_user_2: User = create_user_obj(num=2)
-        subscription = create_subscription_obj(
-            subscriber=test_user_1, subscription_to=test_user_2)
-        assert str(subscription) == (
-            'Подписка test_user_username_1 на test_user_username_2')
-        assert subscription._meta.ordering == ('-id', )
-        assert subscription._meta.verbose_name == 'Подписка'
-        assert subscription._meta.verbose_name_plural == 'Подписки на авторов'
-        subscriber = subscription._meta.get_field('subscriber')
-        assert subscriber.remote_field.on_delete == CASCADE
-        assert subscriber.remote_field.related_name == 'subscriber'
-        assert subscriber.verbose_name == 'Подписчик'
-        subscription_to = subscription._meta.get_field('subscription_to')
-        assert subscription_to.remote_field.on_delete == CASCADE
-        assert subscription_to.remote_field.related_name == (
-            'subscription_author')
-        assert subscription_to.verbose_name == 'Автор на которого подписка'
         return
 
 
@@ -791,17 +708,95 @@ class TestRecipesTagsModel():
         assert recipe_tag._meta.verbose_name_plural == (
             'Связи моделей "Рецепты" и "Теги"')
         recipe = recipe_tag._meta.get_field('recipe')
-        assert recipe.blank
         assert recipe.null
         assert recipe.remote_field.on_delete == SET_NULL
         assert recipe.remote_field.related_name == 'recipe_tag'
         assert recipe.verbose_name == 'Рецепт'
         tag = recipe_tag._meta.get_field('tag')
-        assert tag.blank
         assert tag.null
         assert tag.remote_field.on_delete == SET_NULL
         assert tag.remote_field.related_name == 'tag_recipe'
         assert tag.verbose_name == 'Тег'
+        return
+
+
+@pytest.mark.django_db
+class TestShoppingCartsModel():
+    """Производит тест модели "ShoppingCarts"."""
+
+    def test_valid_create(self) -> None:
+        """Тестирует возможность создания объекта с валидными данными."""
+        test_user: User = create_user_obj(num=1)
+        test_recipe: Recipes = create_recipe_obj(num=1, user=test_user)
+        assert ShoppingCarts.objects.all().count() == 0
+        shopping_cart = create_shopping_cart_obj(
+            recipe=test_recipe, user=test_user)
+        assert ShoppingCarts.objects.all().count() == 1
+        assert shopping_cart.user == test_user
+        assert shopping_cart.recipe == test_recipe
+        return
+
+    def test_meta(self) -> None:
+        """Тестирует мета-данные модели и полей.
+        Тестирует строковое представление модели."""
+        test_user: User = create_user_obj(num=1)
+        test_recipe: Recipes = create_recipe_obj(num=1, user=test_user)
+        shopping_cart: ShoppingCarts = create_shopping_cart_obj(
+            recipe=test_recipe, user=test_user)
+        assert str(shopping_cart) == (
+            'test_user_username_1: "test_recipe_name_1 (1 мин.)"')
+        assert shopping_cart._meta.ordering == ('user', 'recipe')
+        assert shopping_cart._meta.verbose_name == 'Список покупок'
+        assert shopping_cart._meta.verbose_name_plural == 'Списки покупок'
+        user = shopping_cart._meta.get_field('user')
+        assert user.remote_field.on_delete == CASCADE
+        assert user.remote_field.related_name == 'shopping_cart'
+        assert user.verbose_name == 'Корзина пользователя'
+        recipe = shopping_cart._meta.get_field('recipe')
+        assert recipe.null
+        assert recipe.remote_field.on_delete == SET_NULL
+        assert recipe.remote_field.related_name == 'shopping_cart'
+        assert recipe.verbose_name == 'Рецепт в корзине'
+        return
+
+
+@pytest.mark.django_db
+class TestSubscriptionsModel():
+    """Производит тест модели "Subscriptions"."""
+
+    def test_valid_create(self) -> None:
+        """Тестирует возможность создания объекта с валидными данными."""
+        test_user_1: User = create_user_obj(num=1)
+        test_user_2: User = create_user_obj(num=2)
+        assert Subscriptions.objects.all().count() == 0
+        subscription = create_subscription_obj(
+            subscriber=test_user_1, subscription_to=test_user_2)
+        assert Subscriptions.objects.all().count() == 1
+        assert subscription.subscriber == test_user_1
+        assert subscription.subscription_to == test_user_2
+        return
+
+    def test_meta(self) -> None:
+        """Тестирует мета-данные модели и полей.
+        Тестирует строковое представление модели."""
+        test_user_1: User = create_user_obj(num=1)
+        test_user_2: User = create_user_obj(num=2)
+        subscription = create_subscription_obj(
+            subscriber=test_user_1, subscription_to=test_user_2)
+        assert str(subscription) == (
+            'Подписка test_user_username_1 на test_user_username_2')
+        assert subscription._meta.ordering == ('-id', )
+        assert subscription._meta.verbose_name == 'Подписка'
+        assert subscription._meta.verbose_name_plural == 'Подписки на авторов'
+        subscriber = subscription._meta.get_field('subscriber')
+        assert subscriber.remote_field.on_delete == CASCADE
+        assert subscriber.remote_field.related_name == 'subscriber'
+        assert subscriber.verbose_name == 'Подписчик'
+        subscription_to = subscription._meta.get_field('subscription_to')
+        assert subscription_to.remote_field.on_delete == CASCADE
+        assert subscription_to.remote_field.related_name == (
+            'subscription_author')
+        assert subscription_to.verbose_name == 'Автор на которого подписка'
         return
 
 

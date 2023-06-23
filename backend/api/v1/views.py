@@ -161,10 +161,10 @@ class RecipesViewSet(ModelViewSet):
         user: User = request.user
         shopping_carts: list[ShoppingCarts] = (
             ShoppingCarts.objects.filter(
-                user=user).select_related('cart_item'))
+                user=user).select_related('recipe'))
         items: dict = {}
         for cart in shopping_carts:
-            recipe: Recipes = cart.cart_item
+            recipe: Recipes = cart.recipe
             recipes_ingredients: list[RecipesIngredients] = (
                 RecipesIngredients.objects.filter(recipe=recipe))
             for recipe_ingredient in recipes_ingredients:
@@ -227,16 +227,16 @@ class RecipesViewSet(ModelViewSet):
         user: User = request.user
         serializer = ShoppingCartsSerializer(
             data={'user': user.id,
-                  'cart_item': pk},
+                  'recipe': pk},
             context={'request': request})
         serializer.is_valid(raise_exception=True)
         recipe: Recipes = Recipes.objects.get(id=pk)
         if request.method == 'DELETE':
-            ShoppingCarts.objects.get(cart_item=recipe, user=user).delete()
+            ShoppingCarts.objects.get(recipe=recipe, user=user).delete()
             data: None = None
             status_code: status = status.HTTP_204_NO_CONTENT
         elif request.method == 'POST':
-            ShoppingCarts.objects.create(cart_item=recipe, user=user)
+            ShoppingCarts.objects.create(recipe=recipe, user=user)
             serializer = RecipesShortSerializer(instance=recipe)
             data = serializer.data
             status_code: status = status.HTTP_201_CREATED

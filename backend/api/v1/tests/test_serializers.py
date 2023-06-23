@@ -1,9 +1,8 @@
-import pytest
 from rest_framework.serializers import (
     Serializer, ListSerializer,
     Field,
     SerializerMethodField,
-    BooleanField, CharField, ChoiceField, EmailField, ImageField, IntegerField,
+    BooleanField, CharField, ChoiceField, EmailField, IntegerField,
     SlugField)
 
 from api.v1.serializers import (
@@ -71,7 +70,7 @@ def test_shopping_carts_serializer() -> None:
     """Тестирует поля сериализатора "ShoppingCartsSerializer"."""
     expected_fields = {
         'user': PrimaryKeyRelatedField,
-        'cart_item': PrimaryKeyRelatedField}
+        'recipe': PrimaryKeyRelatedField}
     serializer_fields_check(
         expected_fields=expected_fields,
         serializer=ShoppingCartsSerializer())

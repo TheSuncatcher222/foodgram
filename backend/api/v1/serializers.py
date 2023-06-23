@@ -282,7 +282,7 @@ class RecipesSerializer(ModelSerializer):
         user: User = self.context['request'].user
         if user.is_anonymous:
             return False
-        return ShoppingCarts.objects.filter(user=user, cart_item=obj).exists()
+        return ShoppingCarts.objects.filter(user=user, recipe=obj).exists()
 
     def validate(self, data):
         """Проверяет валидность данных поля "Tags".
@@ -445,22 +445,22 @@ class ShoppingCartsSerializer(ModelSerializer):
         model = ShoppingCarts
         fields = (
             'user',
-            'cart_item')
+            'recipe')
 
     def validate(self, data):
         """Производит валидацию данных:
             - DELETE: проверяет, что пользователь "user" имеет рецепт
-              "cart_item" в корзине;
+              "recipe" в корзине;
             - POST: проверяет, что пользователь "user" не добавляет
-              рецепт "cart_item" в корзину повторно."""
+              рецепт "recipe" в корзину повторно."""
         user: User = data['user']
-        recipe: Recipes = data['cart_item']
+        recipe: Recipes = data['recipe']
         request_method: str = self.context['request'].method
         if request_method == 'DELETE' and not ShoppingCarts.objects.filter(
-                cart_item=recipe, user=user).exists():
+                recipe=recipe, user=user).exists():
             raise ValidationError('Ошибка удаления. Рецепта нет в корзине.')
         elif request_method == 'POST' and ShoppingCarts.objects.filter(
-                cart_item=recipe, user=user).exists():
+                recipe=recipe, user=user).exists():
             raise ValidationError(
                 'Ошибка добавления. Рецепт уже находится в корзине.')
         return data

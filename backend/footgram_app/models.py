@@ -31,34 +31,35 @@ TAGS_SLUG_MAX_LEN: int = 200
 RECIPES_MEDIA_ROOT: str = 'recipes/images'
 RECIPES_NAME_MAX_LEN: int = 128
 
-UNITS = [('банка', 'банка'),
-         ('батон', 'батон'),
-         ('бутылка', 'бутылка'),
-         ('г', 'г'),
-         ('горсть', 'горсть'),
-         ('долька', 'долька'),
-         ('звездочка', 'звездочка'),
-         ('зубчик', 'зубчик'),
-         ('капля', 'капля'),
-         ('кусок', 'кусок'),
-         ('л', 'л'),
-         ('лист', 'лист'),
-         ('мл', 'мл'),
-         ('пакет', 'пакет'),
-         ('пакетик', 'пакетик'),
-         ('пачка', 'пачка'),
-         ('пласт', 'пласт'),
-         ('по вкусу', 'по вкусу'),
-         ('пучок', 'пучок'),
-         ('ст. л.', 'ст. л.'),
-         ('стакан', 'стакан'),
-         ('стебель', 'стебель'),
-         ('стручок', 'стручок'),
-         ('тушка', 'тушка'),
-         ('упаковка', 'упаковка'),
-         ('ч. л.', 'ч. л.'),
-         ('шт.', 'шт.'),
-         ('щепотка', 'щепотка')]
+UNITS: list[tuple[str]] = [
+    ('банка', 'банка'),
+    ('батон', 'батон'),
+    ('бутылка', 'бутылка'),
+    ('г', 'г'),
+    ('горсть', 'горсть'),
+    ('долька', 'долька'),
+    ('звездочка', 'звездочка'),
+    ('зубчик', 'зубчик'),
+    ('капля', 'капля'),
+    ('кусок', 'кусок'),
+    ('л', 'л'),
+    ('лист', 'лист'),
+    ('мл', 'мл'),
+    ('пакет', 'пакет'),
+    ('пакетик', 'пакетик'),
+    ('пачка', 'пачка'),
+    ('пласт', 'пласт'),
+    ('по вкусу', 'по вкусу'),
+    ('пучок', 'пучок'),
+    ('ст. л.', 'ст. л.'),
+    ('стакан', 'стакан'),
+    ('стебель', 'стебель'),
+    ('стручок', 'стручок'),
+    ('тушка', 'тушка'),
+    ('упаковка', 'упаковка'),
+    ('ч. л.', 'ч. л.'),
+    ('шт.', 'шт.'),
+    ('щепотка', 'щепотка')]
 
 
 class Ingredients(Model):
@@ -93,8 +94,8 @@ class Ingredients(Model):
 
     class Meta:
         ordering = ('name', )
-        verbose_name = 'ингредиент'
-        verbose_name_plural = 'ингредиенты'
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
 
     def __str__(self):
         return f'{self.name} ({self.measurement_unit})'
@@ -111,11 +112,11 @@ class Tags(Model):
     Метод __str__ возвращает название и слаг тега:
         "Вкусно (vkusno)"
 
-    Сортировка производит в алфавитом порядке по возрастанию (АБВ).
+    Сортировка производит в алфавитом порядке по возрастанию.
 
     Атрибуты:
         - color: str
-            - уникальное значение цвета тега в формате HEX (#RGB или #RRGGBB)
+            - уникальное значение цвета тега в формате HEX (#RRGGBB)
 
         - name: str
             - уникальное название тега
@@ -127,6 +128,10 @@ class Tags(Model):
 
     Индексируемые атрибуты:
         name
+
+    Модель позволяет указывать HEX коды в упрощенном состоянии (#RGB) и
+    при сохранении приводит их в полной форме (#RRGGBB) при помощи функции
+    "_validate_hex_format".
     """
     color = CharField(
         max_length=TAGS_COLOR_MAX_LEN,
@@ -191,7 +196,7 @@ class Recipes(Model):
             - картинка рецепта (Base64)
         - ingredients:
             - список ингредиентов
-            - связь через ManyToManyField и таблицу 'RecipesIngredients'
+            - связь через ManyToManyField и таблицу "RecipesIngredients"
         - name: str
             - уникальное название рецепта
             - установлено ограничение по длине
@@ -199,7 +204,7 @@ class Recipes(Model):
             - индексируется
         - tags:
             - список тегов
-            - связь через ManyToManyField и таблицу 'RecipesTags'
+            - связь через ManyToManyField и таблицу "RecipesTags"
         - text: str
             - текстовое описание рецепта
     """
@@ -213,7 +218,7 @@ class Recipes(Model):
             MinValueValidator(
                 limit_value=1,
                 message='Время должно составлять не менее 1 минуты!')],
-        verbose_name='Время приготовления (в минутах)')
+        verbose_name='Время приготовления (мин.)')
     image = ImageField(
         # ToDo: убрать параметры blank и null
         blank=True,
@@ -254,7 +259,7 @@ class RecipesFavorites(Model):
     """
     Класс для представления избранных рецептов.
 
-    Связывает таблицы 'Recipes' и 'Users'.
+    Связывает таблицы "Recipes" и "Users".
 
     Метод __str__ возвращает информацию по избранному рецепту:
         Пользователь Omnomnom777 добавил рецепт "Лазанья" в избранное
@@ -304,10 +309,10 @@ class RecipesIngredients(Model):
     """
     Класс для предоставления ингредиентов рецепта.
 
-    Связывает таблицы 'Ingredients' и 'Recipes'.
+    Связывает таблицы "Ingredients" и "Recipes".
 
-    Метод __str__ возвращает информацию по рецепте и ингредиенте:
-        Лазанья - Сыр
+    Метод "__str__" возвращает информацию по рецепте и ингредиенте:
+        "Лазанья - Сыр"
 
     Сортировка производится по названию рецепта и названию ингредиента
     по возрастанию.
@@ -378,14 +383,12 @@ class RecipesTags(Model):
     Атрибуты проходят проверку на уникальное сочетание.
     """
     recipe = ForeignKey(
-        blank=True,
         null=True,
         on_delete=SET_NULL,
         related_name='recipe_tag',
         to=Recipes,
         verbose_name='Рецепт')
     tag = ForeignKey(
-        blank=True,
         null=True,
         on_delete=SET_NULL,
         related_name='tag_recipe',
@@ -424,7 +427,7 @@ class ShoppingCarts(Model):
         - user: int
             - ID пользователя
             - связь через ForeignKey к модели "User"
-        - cart_item: int
+        - recipe: int
             - ID рецепта, добавленный в корзину
             - связь через ForeignKey к модели "Recipes"
     """
@@ -433,8 +436,7 @@ class ShoppingCarts(Model):
         related_name='shopping_cart',
         to=User,
         verbose_name='Корзина пользователя')
-    cart_item = ForeignKey(
-        blank=True,
+    recipe = ForeignKey(
         null=True,
         on_delete=SET_NULL,
         to=Recipes,
@@ -442,13 +444,13 @@ class ShoppingCarts(Model):
         verbose_name='Рецепт в корзине')
 
     class Meta:
-        ordering = ('user', 'cart_item')
+        ordering = ('user', 'recipe')
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
 
     def __str__(self):
         return (
-            f'{self.user.username}: "{self.cart_item}"')
+            f'{self.user.username}: "{self.recipe}"')
 
     def save(self, *args, **kwargs):
         self.full_clean()
