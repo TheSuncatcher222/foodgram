@@ -2,13 +2,14 @@ from rest_framework.serializers import (
     Serializer, ListSerializer,
     Field,
     SerializerMethodField,
-    BooleanField, CharField, ChoiceField, EmailField, IntegerField,
-    SlugField)
+    BooleanField, CharField, ChoiceField, ImageField, FloatField,
+    EmailField, IntegerField, SlugField)
 
 from api.v1.serializers import (
     CustomUserSerializer, CustomUserSubscriptionsSerializer,
-    IngredientsSerializer, PrimaryKeyRelatedField, ShoppingCartsSerializer,
-    SubscriptionsSerializer, TagsIdListSerializer, TagsSerializer)
+    IngredientsSerializer, PrimaryKeyRelatedField, RecipesShortSerializer,
+    ShoppingCartsSerializer, SubscriptionsSerializer, TagsIdListSerializer,
+    TagsSerializer)
 
 
 def serializer_fields_check(
@@ -66,6 +67,19 @@ def test_ingredients_serializer() -> None:
     return
 
 
+def test_recipes_short_serializer() -> None:
+    """Тестирует поля сериализатора "RecipesShortSerializer"."""
+    expected_fields = {
+        'id': IntegerField,
+        'name': CharField,
+        'image': ImageField,
+        'cooking_time': IntegerField}
+    serializer_fields_check(
+        expected_fields=expected_fields,
+        serializer=RecipesShortSerializer())
+    return
+
+
 def test_shopping_carts_serializer() -> None:
     """Тестирует поля сериализатора "ShoppingCartsSerializer"."""
     expected_fields = {
@@ -109,12 +123,6 @@ def test_tags_id_list_serializer() -> None:
 
 
 """В разработке."""
-
-
-# ToDo: разработать тест
-def test_recipes_serializer_subscriptions_serializer() -> None:
-    """Тестирует поля сериализатора "RecipesSerializerSubscriptions"."""
-    pass
 
 
 # ToDo: разработать тест
