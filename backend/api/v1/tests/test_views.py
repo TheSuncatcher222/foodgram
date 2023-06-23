@@ -25,13 +25,23 @@ URL_AUTH: str = f'{URL_API_V1}auth/token/'
 URL_AUTH_LOGIN: str = f'{URL_AUTH}login/'
 URL_AUTH_LOGOUT: str = f'{URL_AUTH}logout/'
 URL_INGREDIENTS: str = f'{URL_API_V1}ingredients/'
+URL_INGREDIENTS_PK: str = URL_INGREDIENTS + '{pk}/'
 URL_RECIPES: str = f'{URL_API_V1}recipes/'
+URL_RECIPES_PK: str = URL_RECIPES + '{pk}/'
+URL_RECIPES_FAVORITE: str = f'{URL_RECIPES_PK}favorite/'
 URL_TAGS: str = f'{URL_API_V1}tags/'
+URL_TAGS_PK: str = URL_TAGS + '{pk}/'
+URL_SHOPPING_LIST: str = f'{URL_RECIPES}download_shopping_cart/'
+URL_SHOPPING_UPDATE: str = f'{URL_RECIPES_PK}shopping_cart/'
 URL_USERS: str = f'{URL_API_V1}users/'
+URL_USERS_PK: str = URL_USERS  + '{pk}/'
 URL_USERS_ME: str = f'{URL_USERS}me/'
 URL_USERS_SET_PASSWORD: str = f'{URL_USERS}set_password/'
+URL_USERS_SUBSCRIPTION_UPDATE: str = f'{URL_USERS_PK}subscribe/'
+URL_USERS_SUBSCRIPTIONS: str = f'{URL_USERS}subscriptions/'
 
-TEST_FIXTURES_OBJ_COUNT: int = 3
+"""Количество объектов моделей (Models), должны создавать все фикстуры."""
+TEST_FIXTURES_OBJ_AMOUNT: int = 3
 
 
 def anon_client() -> APIClient:
@@ -60,7 +70,7 @@ def auth_token_client(user: User) -> APIClient:
 @pytest.fixture()
 def create_ingredients() -> None:
     """Фикстура для наполнения БД заданным числом ингредиентов."""
-    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
         create_ingredient_obj(num=i)
     return
 
@@ -69,7 +79,7 @@ def create_ingredients() -> None:
 def create_recipes_users() -> None:
     """Фикстура для наполнения БД заданным числом рецептов.
     Также создает пользователей, которые являются авторами этих рецептов."""
-    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
         user: User = create_user_obj(num=i)
         create_recipe_obj(num=i, user=user)
     return
@@ -84,7 +94,7 @@ def create_recipes_ingredients_tags_users() -> None:
         - теги.
     Затем объекты связываются с рецептами согласно правилам полей "Recipes".
     """
-    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
         user: User = create_user_obj(num=i)
         recipe: Recipes = create_recipe_obj(num=i, user=user)
         tag: Tags = create_tag_obj(num=i)
@@ -98,7 +108,7 @@ def create_recipes_ingredients_tags_users() -> None:
 @pytest.fixture()
 def create_tags() -> None:
     """Фикстура для наполнения БД заданным числом пользователей."""
-    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
         create_tag_obj(num=i)
     return
 
@@ -106,7 +116,7 @@ def create_tags() -> None:
 @pytest.fixture()
 def create_users() -> None:
     """Фикстура для наполнения БД заданным числом пользователей."""
-    for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
         create_user_obj(num=i)
     return
 
@@ -224,7 +234,7 @@ class TestCustomUserViewSet():
             'is_subscribed': False}
         data: dict = self.users_get(client=client_func())
         results_pagination: dict = data['results']
-        assert len(results_pagination) == TEST_FIXTURES_OBJ_COUNT
+        assert len(results_pagination) == TEST_FIXTURES_OBJ_AMOUNT
         assert results_pagination[0] == expected_data
         return
 
@@ -277,7 +287,7 @@ class TestCustomUserViewSet():
             data=data,
             expected_data=expected_data,
             expected_status=status.HTTP_400_BAD_REQUEST,
-            expected_users_count=TEST_FIXTURES_OBJ_COUNT)
+            expected_users_count=TEST_FIXTURES_OBJ_AMOUNT)
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
@@ -797,7 +807,7 @@ class TestRecipesViewSet():
         в формате csv."""
         assert Recipes.objects.all().count() == 3
         test_user = User.objects.get(id=1)
-        for i in range(1, TEST_FIXTURES_OBJ_COUNT+1):
+        for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
             create_shopping_cart_obj(
                 recipe=Recipes.objects.get(id=i),
                 user=test_user)
