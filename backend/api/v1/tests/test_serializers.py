@@ -9,8 +9,7 @@ from rest_framework.serializers import (
 from api.v1.serializers import (
     CustomUserSerializer, CustomUserSubscriptionsSerializer,
     IngredientsSerializer, PrimaryKeyRelatedField, ShoppingCartsSerializer,
-    SubscriptionsSerializer, SubscriptionsCreateSerializer,
-    SubscriptionsDeleteSerializer, TagsIdListSerializer, TagsSerializer)
+    SubscriptionsSerializer, TagsIdListSerializer, TagsSerializer)
 
 
 def serializer_fields_check(
@@ -71,31 +70,22 @@ def test_ingredients_serializer() -> None:
 def test_shopping_carts_serializer() -> None:
     """Тестирует поля сериализатора "ShoppingCartsSerializer"."""
     expected_fields = {
-        'id': IntegerField,
-        'name': CharField,
-        'image': ImageField,
-        'cooking_time': IntegerField}
+        'user': PrimaryKeyRelatedField,
+        'cart_item': PrimaryKeyRelatedField}
     serializer_fields_check(
         expected_fields=expected_fields,
         serializer=ShoppingCartsSerializer())
     return
 
 
-@pytest.mark.parametrize('serializer', [
-        SubscriptionsSerializer,
-        SubscriptionsCreateSerializer,
-        SubscriptionsDeleteSerializer])
-def test_subscriptions_serializer(serializer: Serializer) -> None:
-    """Тестирует поля сериализатора "SubscriptionsDeleteSerializer".
-    Тестирует поля унаследованных сериализаторов:
-        - SubscriptionsCreateSerializer;
-        - SubscriptionsDeleteSerializer."""
+def test_subscriptions_serializer() -> None:
+    """Тестирует поля сериализатора "SubscriptionsSerializer"."""
     expected_fields = {
         'subscriber': PrimaryKeyRelatedField,
         'subscription_to': PrimaryKeyRelatedField}
     serializer_fields_check(
         expected_fields=expected_fields,
-        serializer=serializer())
+        serializer=SubscriptionsSerializer())
     return
 
 
