@@ -12,11 +12,12 @@ from rest_framework.viewsets import ModelViewSet
 from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
     CustomUserSerializer, CustomUserSubscriptionsSerializer,
-    IngredientsSerializer, RecipesSerializer, RecipesShortSerializer,
-    ShoppingCartsSerializer, SubscriptionsSerializer, TagsSerializer)
+    IngredientsSerializer, RecipesSerializer, RecipesFavoritesSerializer,
+    RecipesShortSerializer, ShoppingCartsSerializer, SubscriptionsSerializer,
+    TagsSerializer)
 from footgram_app.models import (
-    Ingredients, Tags, Recipes, RecipesIngredients, ShoppingCarts,
-    Subscriptions)
+    Ingredients, Tags, Recipes, RecipesFavorites, RecipesIngredients,
+    ShoppingCarts, Subscriptions)
 
 
 class CustomUserViewSet(ModelViewSet):
@@ -190,7 +191,33 @@ class RecipesViewSet(ModelViewSet):
         return response
 
     @action(detail=False,
-            methods=('delete', 'post',),
+            methods=('delete', 'post'),
+            url_path=r'(?P<pk>\d+)/favorite',
+            permission_classes=(IsAuthenticated,))
+    def update_favorite(self, request, pk: int):
+        """Добавляет action-эндпоинт ".../recipes/{pk}/favorite/":
+            - POST: добавляет рецепт с id=pk в избранное;
+            - DELETE: удаляет рецепт с id=pk из избранного."""
+        user: User = request.user
+        serializer = RecipesFavoritesSerializer(
+            data={'user': user.id,
+                  'recipe': pk},
+            context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        recipe: Recipes = Recipes.objects.get(id=pk)
+        if request.method == 'DELETE':
+            RecipesFavorites.objects.get(recipe=recipe, user=user).delete()
+            data: None = None
+            status_code: status = status.HTTP_204_NO_CONTENT
+        elif request.method == 'POST':
+            RecipesFavorites.objects.create(recipe=recipe, user=user)
+            serializer = RecipesShortSerializer(instance=recipe)
+            data = serializer.data
+            status_code: status = status.HTTP_201_CREATED
+        return Response(data=data, status=status_code)
+
+    @action(detail=False,
+            methods=('delete', 'post'),
             url_path=r'(?P<pk>\d+)/shopping_cart',
             permission_classes=(IsAuthenticated,))
     def update_shopping_cart(self, request, pk: int):
@@ -210,9 +237,7 @@ class RecipesViewSet(ModelViewSet):
             status_code: status = status.HTTP_204_NO_CONTENT
         elif request.method == 'POST':
             ShoppingCarts.objects.create(cart_item=recipe, user=user)
-            serializer = RecipesShortSerializer(
-                instance=recipe,
-                context={'request': request})
+            serializer = RecipesShortSerializer(instance=recipe)
             data = serializer.data
             status_code: status = status.HTTP_201_CREATED
         return Response(data=data, status=status_code)
