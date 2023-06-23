@@ -94,7 +94,8 @@ class CustomUserViewSet(ModelViewSet):
         subscription_to: User = get_object_or_404(User, id=pk)
         serializer = SubscriptionsSerializer(
                 data={'subscriber': subscriber.id,
-                      'subscription_to': pk})
+                      'subscription_to': pk},
+                context={'request': request})
         serializer.is_valid(raise_exception=True)
         if request.method == 'DELETE':
             Subscriptions.objects.get(
