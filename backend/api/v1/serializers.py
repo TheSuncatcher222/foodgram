@@ -24,7 +24,6 @@ from rest_framework.serializers import (
     ModelSerializer,
     BooleanField, CharField, EmailField, IntegerField, ListField,
     PrimaryKeyRelatedField, SerializerMethodField,
-    SlugRelatedField,
     ValidationError)
 from footgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients, ShoppingCarts,
@@ -253,11 +252,51 @@ class RecipesSerializer(ModelSerializer):
             'text',
             'cooking_time')
 
+    def to_representation(self, instance):
+        """Переопределяет сериализацию объекта:
+            - в поле "tags": сериализатор должен принимать на вход список id
+              тегов, а возвращать в ответе полую информацию от объектах;
+            - в поле "id: сериализатор должен исключить из выдачи поле 'id',
+              при 'PATCH', 'POST' и 'PUT' HTTP-запросах.
+            """
+        representation = super().to_representation(instance)
+        if self.context['request'].method in ('PATCH', 'POST', 'PUT'):
+            representation.pop('id')
+        tags_data: list = []
+        tags: list[Tags] = instance.tags.all()
+        for tag in tags:
+            tags_data.append({
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color,
+                'slug': tag.slug})
+        representation['tags'] = tags_data
+        return representation
+
+    def validate(self, data):
+        """Проверяет валидность данных поля "Tags".
+        Так как на вход при POST запросе ожидается список целых чисел:
+        id (ListField), невозможно осуществить валидацию при помощи
+        сериализатора, требуется ручная проверка входящих данных."""
+        tags: list[int] = self.context['request'].data.get('tags', None)
+        if tags is None and self.context['request'].method != 'PATCH':
+            raise ValidationError({
+                "tags": ["Обязательное поле."]})
+        bad_ids: list = []
+        for tag_id in tags:
+            if not Tags.objects.filter(id=tag_id).exists():
+                bad_ids.append({
+                    'id': [f'Недопустимый первичный ключ "{tag_id}" '
+                           '- объект не существует.']})
+        if bad_ids:
+            raise ValidationError({'tags': bad_ids})
+        return data
+
     def create(self, validated_data):
         """Переопределяет метод сохранения данных (POST)."""
         user: User = self.context['request'].user
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
-        tags_data: list[int] = validated_data.pop('tags')
+        tags_data = self.context['request'].data.get('tags')
         current_recipe: Recipes = Recipes.objects.create(
             author=user, **validated_data)
         for ingredient in ingredients_data:
@@ -295,25 +334,11 @@ class RecipesSerializer(ModelSerializer):
             fields['ingredients'] = RecipesIngredientsCreateSerializer(
                 many=True,
                 source='recipe_ingredient')
-            fields['tags'] = SlugRelatedField(
-                many=True, queryset=Tags.objects.all(), slug_field="id")
         else:
             fields['ingredients'] = RecipesIngredientsSerializer(
                 many=True,
                 source='recipe_ingredient')
-            fields['tags'] = TagsSerializer(many=True)
         return fields
-
-    # ToDo: проверить необходимость кода:
-    # def perform_create(self, serializer):
-    #     """Дополняет метод save() для записи в БД:
-    #         - добавляет пользователя из запроса в поле "author"."""
-    #     serializer.save(author=self.request.user)
-    #     return
-
-    # ToDo: добавить функцию, которая бы проверяла перед началом сохранения,
-    # что переданные значения ID тегов и ингредиентов существуют
-    # def validate(self, data: OrderedDict) -> OrderedDict:
 
 
 class RecipesFavoritesSerializer(ModelSerializer):
