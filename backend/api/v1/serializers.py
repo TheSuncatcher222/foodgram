@@ -26,8 +26,8 @@ from rest_framework.serializers import (
     PrimaryKeyRelatedField, SerializerMethodField,
     ValidationError)
 from footgram_app.models import (
-    Ingredients, Recipes, RecipesFavorites, RecipesIngredients, ShoppingCarts,
-    Subscriptions, Tags)
+    Ingredients, Recipes, RecipesFavorites, RecipesIngredients, RecipesTags,
+    ShoppingCarts, Subscriptions, Tags)
 
 USER_EMAIL_MAX_LEN: int = 254
 USER_FIRST_NAME_MAX_LEN: int = 150
@@ -252,6 +252,95 @@ class RecipesSerializer(ModelSerializer):
             'text',
             'cooking_time')
 
+    def get_fields(self):
+        """Определяет сериализатор для поля "tags" в зависимости
+        от типа HTTP-запроса."""
+        fields = super().get_fields()
+        if self.context['request'].method in ('PATCH', 'POST', 'PUT'):
+            fields['ingredients'] = RecipesIngredientsCreateSerializer(
+                many=True,
+                source='recipe_ingredient')
+        else:
+            fields['ingredients'] = RecipesIngredientsSerializer(
+                many=True,
+                source='recipe_ingredient')
+        return fields
+
+    def get_is_favorited(self, obj):
+        """Показывает наличие рецепта в избранном пользователя в поле
+        'is_subscribed'. Возвращает True, если рецепт в избранном,
+        False - если нет, или пользователь не авторизован.."""
+        user: User = self.context['request'].user
+        if user.is_anonymous:
+            return False
+        return RecipesFavorites.objects.filter(user=user, recipe=obj).exists()
+
+    def get_is_in_shopping_cart(self, obj):
+        """Показывает наличие рецепта в корзине пользователя в поле
+        'is_in_shopping_cart'. Возвращает True, если рецепт в корзине,
+        False - если нет, или пользователь не авторизован.."""
+        user: User = self.context['request'].user
+        if user.is_anonymous:
+            return False
+        return ShoppingCarts.objects.filter(user=user, cart_item=obj).exists()
+
+    def validate(self, data):
+        """Проверяет валидность данных поля "Tags".
+        Так как на вход при POST запросе ожидается список целых чисел:
+        id (ListField), невозможно осуществить валидацию при помощи
+        сериализатора, требуется ручная проверка входящих данных."""
+        tags: list[int] = self.context['request'].data.get('tags', None)
+        if tags is None:
+            if self.context['request'].method == 'PATCH':
+                return data
+            raise ValidationError({
+                "tags": ["Обязательное поле."]})
+        bad_ids: list = []
+        for tag_id in tags:
+            if not Tags.objects.filter(id=tag_id).exists():
+                bad_ids.append({
+                    'id': [f'Недопустимый первичный ключ "{tag_id}" '
+                           '- объект не существует.']})
+        if bad_ids:
+            raise ValidationError({'tags': bad_ids})
+        return data
+
+    def create(self, validated_data):
+        """Переопределяет метод сохранения данных (POST)."""
+        user: User = self.context['request'].user
+        ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
+        current_recipe: Recipes = Recipes.objects.create(
+            author=user, **validated_data)
+        for ingredient in ingredients_data:
+            current_amount: float = ingredient['amount']
+            RecipesIngredients.objects.create(
+                amount=current_amount,
+                ingredient=ingredient['id'],
+                recipe=current_recipe)
+        tags_data = self.context['request'].data.get('tags')
+        current_recipe.tags.set(tags_data)
+        return current_recipe
+
+    def update(self, instance, validated_data):
+        """Переопределяет метод обновления данных (PATCH)."""
+        instance.cooking_time = validated_data.get(
+            'cooking_time', instance.name)
+        instance.image = validated_data.get('image', instance.image)
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        RecipesIngredients.objects.filter(recipe=instance).delete()
+        ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
+        for ingredient in ingredients_data:
+            current_amount: float = ingredient['amount']
+            RecipesIngredients.objects.create(
+                amount=current_amount,
+                ingredient=ingredient['id'],
+                recipe=instance)
+        tags_data = self.context['request'].data.get('tags')
+        RecipesTags.objects.filter(recipe=instance).delete()
+        instance.tags.set(tags_data)
+        return instance
+
     def to_representation(self, instance):
         """Переопределяет сериализацию объекта:
             - в поле "tags": сериализатор должен принимать на вход список id
@@ -272,73 +361,6 @@ class RecipesSerializer(ModelSerializer):
                 'slug': tag.slug})
         representation['tags'] = tags_data
         return representation
-
-    def validate(self, data):
-        """Проверяет валидность данных поля "Tags".
-        Так как на вход при POST запросе ожидается список целых чисел:
-        id (ListField), невозможно осуществить валидацию при помощи
-        сериализатора, требуется ручная проверка входящих данных."""
-        tags: list[int] = self.context['request'].data.get('tags', None)
-        if tags is None and self.context['request'].method != 'PATCH':
-            raise ValidationError({
-                "tags": ["Обязательное поле."]})
-        bad_ids: list = []
-        for tag_id in tags:
-            if not Tags.objects.filter(id=tag_id).exists():
-                bad_ids.append({
-                    'id': [f'Недопустимый первичный ключ "{tag_id}" '
-                           '- объект не существует.']})
-        if bad_ids:
-            raise ValidationError({'tags': bad_ids})
-        return data
-
-    def create(self, validated_data):
-        """Переопределяет метод сохранения данных (POST)."""
-        user: User = self.context['request'].user
-        ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
-        tags_data = self.context['request'].data.get('tags')
-        current_recipe: Recipes = Recipes.objects.create(
-            author=user, **validated_data)
-        for ingredient in ingredients_data:
-            current_amount: float = ingredient['amount']
-            RecipesIngredients.objects.create(
-                amount=current_amount,
-                ingredient=ingredient['id'],
-                recipe=current_recipe)
-        current_recipe.tags.set(tags_data)
-        return current_recipe
-
-    def get_is_favorited(self, obj):
-        """Показывает наличие рецепта в избранном пользователя в поле
-        'is_subscribed'. Возвращает True, если рецепт в избранном,
-        False - если нет, или пользователь не авторизован.."""
-        user: User = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return RecipesFavorites.objects.filter(user=user, recipe=obj).exists()
-
-    def get_is_in_shopping_cart(self, obj):
-        """Показывает наличие рецепта в корзине пользователя в поле
-        'is_in_shopping_cart'. Возвращает True, если рецепт в корзине,
-        False - если нет, или пользователь не авторизован.."""
-        user: User = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return ShoppingCarts.objects.filter(user=user, cart_item=obj).exists()
-
-    def get_fields(self):
-        """Определяет сериализатор для поля "tags" в зависимости
-        от типа HTTP-запроса."""
-        fields = super().get_fields()
-        if self.context['request'].method in ('PATCH', 'POST', 'PUT'):
-            fields['ingredients'] = RecipesIngredientsCreateSerializer(
-                many=True,
-                source='recipe_ingredient')
-        else:
-            fields['ingredients'] = RecipesIngredientsSerializer(
-                many=True,
-                source='recipe_ingredient')
-        return fields
 
 
 class RecipesFavoritesSerializer(ModelSerializer):
