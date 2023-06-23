@@ -206,6 +206,7 @@ class RecipesIngredientsSerializer(ModelSerializer):
         return fields
 
 
+# ToDo: попробовать убрать сериализатор.
 class RecipesIngredientsCreateSerializer(ModelSerializer):
     """Создает сериализатор для поля "ingredients" в "RecipesSerializer"
     для создания объектов модели "RecipesIngredients" при обработке
@@ -215,6 +216,7 @@ class RecipesIngredientsCreateSerializer(ModelSerializer):
         - "PUT"."""
 
     id = PrimaryKeyRelatedField(queryset=Ingredients.objects.all())
+    # ToDo: переопределить поля (2) в методе to_representation()
     name = SerializerMethodField(read_only=True)
     measurement_unit = SerializerMethodField(read_only=True)
 
