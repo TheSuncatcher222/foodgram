@@ -124,6 +124,7 @@ def create_users() -> None:
 
 
 # ToDo: заменить в тестах "== status" на "== status_code"
+# ToDo: проверить, что все URL указаны не через f-строку (f'{URL_TAGS}1/')
 
 
 @pytest.mark.django_db
@@ -998,6 +999,12 @@ class TestRecipesViewSet():
 class TestTagsViewSet():
     """Производит тест вью-сета "TagsViewSet"."""
 
+    FIRST_TAG_EXP: dict = {
+        'id': 1,
+        'name': 'test_tag_name_1',
+        'color': '#000001',
+        'slug': 'test_tag_slug_1'}
+
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_tags_get(self, client_func, create_tags) -> None:
         """Тест GET-запроса списка тегов по эндпоинту "/api/v1/tags/"
@@ -1007,34 +1014,12 @@ class TestTagsViewSet():
         В классе используется пагинация. В рамках теста производится анализ
         содержимого "results" для первого элемента. Тест непосредственно
         пагинации производится в функции "test_view_sets_pagination"."""
-        expected_data: dict[str, any] = {
-            'id': 1,
-            'name': 'test_tag_name_1',
-            'color': '#000001',
-            'slug': 'test_tag_slug_1'}
         client = client_func()
         response = client.get(URL_TAGS)
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         results_pagination: dict = data['results']
-        assert results_pagination[0] == expected_data
-        return
-
-    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_tags_get_pk(self, client_func, create_tags) -> None:
-        """Тест GET-запроса на тег по эндпоинту "/api/v1/users/{pk}/"
-        для анонимного и авторизированного клиента.
-        Используется фикстура "create_tags" для наполнения тестовой
-        БД тегами."""
-        client = client_func()
-        response = client.get(f'{URL_TAGS}1/')
-        assert response.status_code == status.HTTP_200_OK
-        data: dict = json.loads(response.content)
-        assert data == {
-            'id': 1,
-            'name': 'test_tag_name_1',
-            'color': '#000001',
-            'slug': 'test_tag_slug_1'}
+        assert results_pagination[0] == self.FIRST_TAG_EXP
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
@@ -1047,6 +1032,34 @@ class TestTagsViewSet():
             - PUT."""
         client: APIClient = client_func()
         response = getattr(client, method)(URL_TAGS)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_tags_pk_get(self, client_func, create_tags) -> None:
+        """Тест GET-запроса на тег по эндпоинту "/api/v1/tags/{pk}/"
+        для анонимного и авторизированного клиента.
+        Используется фикстура "create_tags" для наполнения тестовой
+        БД тегами."""
+        client = client_func()
+        response = client.get(URL_TAGS_PK.format(pk=1))
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        assert data == self.FIRST_TAG_EXP
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
+    def test_tags_pk_not_allowed(
+            self, client_func, method: str, create_tags) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту
+        "/api/v1/tags/{pk}/":
+            - DELETE;
+            - PATCH;
+            - POST;
+            - PUT."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(URL_TAGS_PK.format(pk=1))
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
