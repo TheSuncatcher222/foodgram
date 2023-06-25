@@ -129,13 +129,14 @@ def create_users() -> None:
 @pytest.mark.django_db
 class TestAuth():
     """Производит тест корректности настройки авторизации Djoser."""
-    
-    def test_users_get_token(self) -> None:
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_users_login_post(self, client_func) -> None:
         """Тест POST-запроса на страницу получения токена по эндпоинту
-        "/api/auth/token/login/" для анонимного клиента."""
+        "/api/auth/token/login/" для анонимного и авторизованного клиента."""
         test_user: User = create_user_obj_with_hash(num=1)
         token, _ = Token.objects.get_or_create(user=test_user)
-        client = anon_client()
+        client: APIClient = client_func()
         data: dict = {
             'username': 'test_user_username_1',
             'password': 'test_user_password_1'}
@@ -144,8 +145,55 @@ class TestAuth():
             json.dumps(data),
             content_type='application/json')
         assert response.status_code == status.HTTP_200_OK
-        content = json.loads(response.content)
-        assert content['auth_token'] == token.key
+        data: dict = json.loads(response.content)
+        assert data == {'auth_token': token.key}
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    @pytest.mark.parametrize('method', ['delete', 'get', 'patch', 'put'])
+    def test_users_login_not_allowed(self, client_func, method: str) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/auth/token/login/":
+            - DELETE;
+            - GET;
+            - PATCH;
+            - PUT."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(URL_AUTH_LOGIN)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        return
+
+    def test_users_logout_post(self) -> None:
+        """Тест POST-запроса на страницу удаления токена по эндпоинту
+        "/api/auth/token/logout/" для анонимного и авторизованного клиента."""
+        test_user: User = create_user_obj_with_hash(num=1)
+        assert not Token.objects.filter(user=test_user).exists()
+        token, _ = Token.objects.get_or_create(user=test_user)
+        assert Token.objects.filter(user=test_user).exists()
+        client: APIClient = anon_client()
+        response = client.post(URL_AUTH_LOGOUT)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert Token.objects.filter(user=test_user).exists()
+        client: APIClient = auth_token_client(user_id=1)
+        response = client.post(URL_AUTH_LOGOUT)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Token.objects.filter(user=test_user).exists()
+        return
+
+    @pytest.mark.parametrize('method', ['delete', 'get', 'patch', 'put'])
+    def test_users_logout_not_allowed(self, method: str) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/auth/token/logout/":
+            - DELETE;
+            - GET;
+            - PATCH;
+            - PUT."""
+        client: APIClient = anon_client()
+        response = getattr(client, method)(URL_AUTH_LOGOUT)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        create_user_obj_with_hash(num=1)
+        client: APIClient = auth_token_client(user_id=1)
+        response = getattr(client, method)(URL_AUTH_LOGOUT)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        return
 
 
 @pytest.mark.django_db
