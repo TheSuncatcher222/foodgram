@@ -34,7 +34,7 @@ URL_TAGS_PK: str = URL_TAGS + '{pk}/'
 URL_SHOPPING_LIST: str = f'{URL_RECIPES}download_shopping_cart/'
 URL_SHOPPING_UPDATE: str = f'{URL_RECIPES_PK}shopping_cart/'
 URL_USERS: str = f'{URL_API_V1}users/'
-URL_USERS_PK: str = URL_USERS  + '{pk}/'
+URL_USERS_PK: str = URL_USERS + '{pk}/'
 URL_USERS_ME: str = f'{URL_USERS}me/'
 URL_USERS_SET_PASSWORD: str = f'{URL_USERS}set_password/'
 URL_USERS_SUBSCRIPTION_UPDATE: str = f'{URL_USERS_PK}subscribe/'
@@ -57,11 +57,13 @@ def auth_client() -> APIClient:
     return auth_client
 
 
-def auth_token_client(user: User) -> APIClient:
+def auth_token_client(user_id: int = 1) -> APIClient:
     """Возвращает объект авторизированного клиента c токеном.
     Токен записывается в заголовок запросов и применяется автоматически.
-    Токен формируется для переданного экземпляра модели "Users"."""
-    token, _ = Token.objects.get_or_create(user=user)
+    Токен формируется для переданного экземпляра модели "Users".
+    По-умолчанию берется пользователь с id=1."""
+    token_user: User = User.objects.get(id=user_id)
+    token, _ = Token.objects.get_or_create(user=token_user)
     auth_token_client: APIClient = anon_client()
     auth_token_client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
     return auth_token_client
@@ -119,6 +121,31 @@ def create_users() -> None:
     for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
         create_user_obj(num=i)
     return
+
+
+# ToDo: заменить в тестах "== status" на "== status_code"
+
+
+@pytest.mark.django_db
+class TestAuth():
+    """Производит тест корректности настройки авторизации Djoser."""
+    
+    def test_users_get_token(self) -> None:
+        """Тест POST-запроса на страницу получения токена по эндпоинту
+        "/api/auth/token/login/" для анонимного клиента."""
+        test_user: User = create_user_obj_with_hash(num=1)
+        token, _ = Token.objects.get_or_create(user=test_user)
+        client = anon_client()
+        data: dict = {
+            'username': 'test_user_username_1',
+            'password': 'test_user_password_1'}
+        response = client.post(
+            URL_AUTH_LOGIN,
+            json.dumps(data),
+            content_type='application/json')
+        assert response.status_code == status.HTTP_200_OK
+        content = json.loads(response.content)
+        assert content['auth_token'] == token.key
 
 
 @pytest.mark.django_db
@@ -190,32 +217,6 @@ class TestCustomUserViewSet():
         'email': ['Пользователь с такой электронной почтой уже существует.'],
         'username': ['Пользователь с таким именем уже существует.']}
 
-    def users_get(self, client: APIClient) -> dict:
-        """Совершает GET-запрос к списку пользователей по эндпоинту
-        "/api/v1/users/" от лица переданного клиента.
-        В случае успешного запроса возвращает ответ, приведенный к формату
-        данных Python."""
-        response = client.get(URL_USERS)
-        assert response.status_code == status.HTTP_200_OK
-        return json.loads(response.content)
-
-    def users_post(
-            self,
-            client: APIClient,
-            data: dict[str, any],
-            expected_data: dict[str, any],
-            expected_status: status,
-            expected_users_count: int) -> None:
-        """Совершает POST-запрос к списку пользователей по эндпоинту
-        "/api/v1/users/" от лица переданного клиента."""
-        response = client.post(
-            URL_USERS, json.dumps(data), content_type='application/json')
-        assert response.status_code == expected_status
-        assert User.objects.all().count() == expected_users_count
-        data: dict = json.loads(response.content)
-        assert data == expected_data
-        return
-
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_users_get(self, client_func, create_users) -> None:
         """Тест GET-запроса списка пользователей по эндпоинту
@@ -232,38 +233,29 @@ class TestCustomUserViewSet():
             'first_name': 'test_user_first_name_1',
             'last_name': 'test_user_last_name_1',
             'is_subscribed': False}
-        data: dict = self.users_get(client=client_func())
-        results_pagination: dict = data['results']
+        client: APIClient = client_func()
+        response = client.get(URL_USERS)
+        assert response.status_code == status.HTTP_200_OK
+        results_pagination: dict = json.loads(response.content)['results']
         assert len(results_pagination) == TEST_FIXTURES_OBJ_AMOUNT
         assert results_pagination[0] == expected_data
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    @pytest.mark.parametrize('method', ['delete', 'patch', 'put'])
-    def test_users_not_allowed_methods(
-            self, client_func, method, create_users) -> None:
-        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/{pk}":
-            - DELETE;
-            - PATCH;
-            - PUT.
-        Используется фикстура "create_users" для наполнения тестовой
-        БД пользователями."""
-        client: APIClient = client_func()
-        response = getattr(client, method)(f'{URL_TAGS}1/')
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-        return
-
-    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_users_post_allow_create(self, client_func) -> None:
+    def test_users_post(self, client_func) -> None:
         """Тест POST-запроса на создание нового пользователя по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента.
         Передаваемые данные являются заведомо валидными."""
-        self.users_post(
-            client=client_func(),
-            data=self.VALID_POST_DATA,
-            expected_data=self.VALID_POST_DATA_EXP,
-            expected_status=status.HTTP_201_CREATED,
-            expected_users_count=1)
+        client: APIClient = client_func()
+        assert User.objects.all().count() == 0
+        response = client.post(
+            URL_USERS,
+            json.dumps(self.VALID_POST_DATA),
+            content_type='application/json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert User.objects.all().count() == 1
+        data: dict = json.loads(response.content)
+        assert data == self.VALID_POST_DATA_EXP
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
@@ -273,7 +265,7 @@ class TestCustomUserViewSet():
         (NON_VALID_POST_DATA_EMAIL, NON_VALID_POST_DATA_EMAIL_EXP),
         (NON_VALID_POST_DATA_USERNAME, NON_VALID_POST_DATA_USERNAME_EXP),
         (NON_VALID_POST_DATA_EXISTED, NON_VALID_POST_DATA_EXISTED_EXP)])
-    def test_users_post_field_validation(
+    def test_users_post_invalid_data(
             self,
             client_func,
             data: dict,
@@ -281,175 +273,61 @@ class TestCustomUserViewSet():
             create_users) -> None:
         """Тест POST-запроса на создание нового пользователя по эндпоинту
         "/api/v1/users/" для анонимного и авторизированного клиента.
-        Передаваемые данные являются заведомо не валидными валидными."""
-        self.users_post(
-            client=client_func(),
-            data=data,
-            expected_data=expected_data,
-            expected_status=status.HTTP_400_BAD_REQUEST,
-            expected_users_count=TEST_FIXTURES_OBJ_AMOUNT)
+        Передаваемые данные являются заведомо не валидными."""
+        client: APIClient = client_func()
+        assert User.objects.all().count() == TEST_FIXTURES_OBJ_AMOUNT
+        response = client.post(
+            URL_USERS,
+            json.dumps(data),
+            content_type='application/json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert User.objects.all().count() == TEST_FIXTURES_OBJ_AMOUNT
+        data: dict = json.loads(response.content)
+        assert data == expected_data
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_users_pk(self, client_func, create_users) -> None:
-        """Тест GET-запроса на личную страницу пользователя по эндпоинту
-        "/api/v1/users/{pk}/" для анонимного и авторизированного клиента.
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'put'])
+    def test_users_not_allowed(
+            self, client_func, method: str, create_users) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/{pk}/":
+            - DELETE;
+            - PATCH;
+            - PUT.
         Используется фикстура "create_users" для наполнения тестовой
         БД пользователями."""
         client: APIClient = client_func()
-        response = client.get(f'{URL_USERS}1/')
-        assert response.status_code == status.HTTP_200_OK
-        data: dict = json.loads(response.content)
-        assert data == {
-            'email': 'test_user_email_1@email.com',
-            'id': 1,
-            'username': 'test_user_username_1',
-            'first_name': 'test_user_first_name_1',
-            'last_name': 'test_user_last_name_1',
-            'is_subscribed': False}
+        response = getattr(client, method)(URL_USERS_PK.format(pk=1))
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
-    def test_users_pk_subscription(self, create_users) -> None:
-        """Тест GET-запроса на личную страницу пользователя по эндпоинту
-        "/api/v1/users/{pk}/" для авторизированного клиента.
-        Используется фикстура "create_users" для наполнения тестовой
-        БД пользователями.
-        Моделируется подписка клиента на другого пользователя."""
-        subscriber: User = User.objects.get(id=1)
-        subscription_to: User = User.objects.get(id=2)
-        Subscriptions.objects.create(
-            subscriber=subscriber,
-            subscription_to=subscription_to)
-        client: APIClient = auth_client()
-        client.force_authenticate(user=subscriber)
-        response = client.get(f'{URL_USERS}2/')
-        assert response.status_code == status.HTTP_200_OK
-        data: dict = json.loads(response.content)
-        assert data == {
-            'email': 'test_user_email_2@email.com',
-            'id': 2,
-            'username': 'test_user_username_2',
-            'first_name': 'test_user_first_name_2',
-            'last_name': 'test_user_last_name_2',
-            'is_subscribed': True}
-        return
-
-    @pytest.mark.parametrize('user_id, status_code, expected_data', [
-        (1,
-         status.HTTP_400_BAD_REQUEST,
-         {'non_field_errors':
-          ['Вы не можете подписаться на себя.']}),
-        (2,
-         status.HTTP_400_BAD_REQUEST,
-         {'non_field_errors':
-          ['Вы уже подписаны на пользователя test_user_username_2.']}),
-        (3,
-         status.HTTP_200_OK,
-         {'email': 'test_user_email_3@email.com',
-          'id': 3,
-          'username': 'test_user_username_3',
-          'first_name': 'test_user_first_name_3',
-          'last_name': 'test_user_last_name_3',
-          'is_subscribed': True,
-          'recipes_count': 0,
-          'recipes': []}),
-        (4,
-         status.HTTP_404_NOT_FOUND,
-         {'detail':
-          'Страница не найдена.'})])
-    def test_users_pk_subscribe(
+    @pytest.mark.parametrize(
+        'client_func, status_code, expected_data',
+        [(anon_client,
+          status.HTTP_401_UNAUTHORIZED,
+          {'detail': 'Учетные данные не были предоставлены.'}),
+         (auth_token_client,
+          status.HTTP_200_OK,
+          {'email': 'test_user_email_1@email.com',
+           'id': 1,
+           'username': 'test_user_username_1',
+           'first_name': 'test_user_first_name_1',
+           'last_name': 'test_user_last_name_1',
+           'is_subscribed': False})])
+    def test_users_me_get(
             self,
-            user_id: int,
+            client_func,
             status_code: status,
             expected_data: dict,
             create_users) -> None:
-        """Тест POST-запроса на создание подписки на пользователя по эндпоинту
-        "/api/v1/users/{pk}/subscribe/".
-        В тесте создается подписка пользователя 1 на пользователя 2
-        и рассматриваются следующие возможные случаи:
-            1) пользователь 1 подписывается сам на себя;
-            2) пользователь 1 подписывается на пользователя 2 повторно;
-            3) пользователь 1 подписывается на пользователя 3;
-            4) пользователь 1 подписывается несуществующего пользователя."""
-        test_user: User = User.objects.get(id=1)
-        already_subscribed: User = User.objects.get(id=2)
-        Subscriptions.objects.create(
-            subscriber=test_user,
-            subscription_to=already_subscribed)
-        client: APIClient = auth_token_client(user=test_user)
-        response = client.post(path=f'{URL_USERS}{user_id}/subscribe/')
+        """Тест GET-запроса на личную страницу пользователя по эндпоинту
+        "/api/v1/users/me/" для анонимного и авторизированного клиента."""
+        client: APIClient = client_func()
+        response = client.get(URL_USERS_ME)
         assert response.status_code == status_code
         data: dict = json.loads(response.content)
         assert data == expected_data
         return
-
-    @pytest.mark.parametrize('user_id, status_code, expected_data', [
-        (2,
-         status.HTTP_204_NO_CONTENT,
-         {}),
-        (3,
-         status.HTTP_400_BAD_REQUEST,
-         {'non_field_errors':
-          ['Вы не были подписаны на пользователя test_user_username_3.']}),
-        (4,
-         status.HTTP_404_NOT_FOUND,
-         {'detail':
-          'Страница не найдена.'})])
-    def test_users_pk_unsubscribe(
-            self,
-            user_id: int,
-            status_code: status,
-            expected_data: dict,
-            create_users) -> None:
-        """Тест DELETE-запроса на удаление подписки на пользователя по
-        эндпоинту "/api/v1/users/{pk}/subscribe/".
-        В тесте создается подписка пользователя 1 на пользователя 2
-        и рассматриваются следующие возможные случаи:
-            1) пользователь 1 отписывается от существующей подписки;
-            2) пользователь 1 отписывается от несуществующей подписки;
-            3) пользователь 1 отписывается от несуществующего пользователя."""
-        test_user: User = User.objects.get(id=1)
-        already_subscribed: User = User.objects.get(id=2)
-        Subscriptions.objects.create(
-            subscriber=test_user,
-            subscription_to=already_subscribed)
-        client: APIClient = auth_token_client(user=test_user)
-        response = client.delete(path=f'{URL_USERS}{user_id}/subscribe/')
-        assert response.status_code == status_code
-        try:
-            data: dict = json.loads(response.content)
-        except json.decoder.JSONDecodeError:
-            """При статусе 204 возвращается ответ без контента."""
-            data: dict = {}
-        assert data == expected_data
-        return
-
-    def test_users_me_anon(self, create_users) -> None:
-        """Тест GET-запроса на личную страницу пользователя по эндпоинту
-        "/api/v1/users/me/" для анонимного клиента."""
-        client: APIClient = anon_client()
-        response = client.get(URL_USERS_ME)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        data: dict = json.loads(response.content)
-        assert data == {'detail': 'Учетные данные не были предоставлены.'}
-        return
-
-    def test_users_me_auth(self, create_users) -> None:
-        """Тест GET-запроса на личную страницу пользователя по эндпоинту
-        "/api/v1/users/me/" для авторизированного клиента."""
-        test_user: User = User.objects.get(id=1)
-        client = APIClient()
-        client.force_authenticate(user=test_user)
-        response = client.get(URL_USERS_ME)
-        assert response.status_code == status.HTTP_200_OK
-        data: dict = json.loads(response.content)
-        assert data == {
-            'email': 'test_user_email_1@email.com',
-            'id': 1,
-            'username': 'test_user_username_1',
-            'first_name': 'test_user_first_name_1',
-            'last_name': 'test_user_last_name_1',
-            'is_subscribed': False}
 
     @pytest.mark.parametrize(
         'token, expected_data',
@@ -469,11 +347,242 @@ class TestCustomUserViewSet():
         assert data == expected_data
         return
 
-    def test_users_set_password(self) -> None:
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
+    def test_users_me_not_allowed(
+            self, client_func, method: str, create_users) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/me/":
+            - DELETE;
+            - PATCH;
+            - POST;
+            - PUT.
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(URL_USERS_PK.format(pk=1))
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_users_pk_get(self, client_func, create_users) -> None:
+        """Тест GET-запроса на личную страницу пользователя по эндпоинту
+        "/api/v1/users/{pk}/" для анонимного и авторизированного клиента.
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями."""
+        client: APIClient = client_func()
+        response = client.get(f'{URL_USERS}1/')
+        assert response.status_code == status.HTTP_200_OK
+        data: dict = json.loads(response.content)
+        assert data == {
+            'email': 'test_user_email_1@email.com',
+            'id': 1,
+            'username': 'test_user_username_1',
+            'first_name': 'test_user_first_name_1',
+            'last_name': 'test_user_last_name_1',
+            'is_subscribed': False}
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
+    def test_users_pk_not_allowed(
+            self, client_func, method: str, create_users) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/users/{pk}/":
+            - DELETE;
+            - PATCH;
+            - POST;
+            - PUT.
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(f'{URL_USERS}1/')
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        return
+
+    @pytest.mark.parametrize(
+        'to_user_id, status_code, expected_data',
+        [(1,
+          status.HTTP_400_BAD_REQUEST,
+          {'non_field_errors':
+           ['Вы не можете подписаться на себя.']}),
+         (2,
+          status.HTTP_400_BAD_REQUEST,
+          {'non_field_errors':
+           ['Вы уже подписаны на пользователя test_user_username_2.']}),
+         (3,
+          status.HTTP_201_CREATED,
+          {'email': 'test_user_email_3@email.com',
+           'id': 3,
+           'username': 'test_user_username_3',
+           'first_name': 'test_user_first_name_3',
+           'last_name': 'test_user_last_name_3',
+           'is_subscribed': True,
+           'recipes_count': 0,
+           'recipes': []}),
+         (4,
+          status.HTTP_404_NOT_FOUND,
+          {'detail':
+           'Страница не найдена.'})])
+    def test_users_pk_subscribe_post(
+            self,
+            to_user_id: int,
+            status_code: status,
+            expected_data: dict,
+            create_users) -> None:
+        """Тест POST-запроса на подписку на пользователя по эндпоинту
+        "/api/v1/users/{pk}/subscribe" авторизированного клиента.
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями.
+        Моделируется подписка клиента на другого пользователя.
+        В тесте создается подписка пользователя 1 на пользователя 2
+        и рассматриваются следующие возможные случаи:
+            1) пользователь 1 подписывается сам на себя;
+            2) пользователь 1 подписывается на пользователя 2 повторно;
+            3) пользователь 1 подписывается на пользователя 3;
+            4) пользователь 1 подписывается несуществующего пользователя."""
+        USER_ID: int = 1
+        TO_SUBSCRIBE_USER: int = 2
+        subscriber: User = User.objects.get(id=USER_ID)
+        subscription_to: User = User.objects.get(id=TO_SUBSCRIBE_USER)
+        Subscriptions.objects.create(
+            subscriber=subscriber,
+            subscription_to=subscription_to)
+        client: APIClient = anon_client()
+        response = client.post(
+            f'{URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id)}')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        client: APIClient = auth_token_client(user_id=USER_ID)
+        response = client.post(
+            f'{URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id)}')
+        assert response.status_code == status_code
+        data: dict = json.loads(response.content)
+        assert data == expected_data
+        return
+
+    @pytest.mark.parametrize('to_user_id, status_code, expected_data', [
+        (2,
+         status.HTTP_204_NO_CONTENT,
+         {}),
+        (3,
+         status.HTTP_400_BAD_REQUEST,
+         {'non_field_errors':
+          ['Вы не были подписаны на пользователя test_user_username_3.']}),
+        (4,
+         status.HTTP_404_NOT_FOUND,
+         {'detail':
+          'Страница не найдена.'})])
+    def test_users_pk_subscribe_delete(
+            self,
+            to_user_id: int,
+            status_code: status,
+            expected_data: dict,
+            create_users) -> None:
+        """Тест DELETE-запроса на удаление подписки на пользователя по
+        эндпоинту "/api/v1/users/{pk}/subscribe/".
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями.
+        В тесте создается подписка пользователя 1 на пользователя 2
+        и рассматриваются следующие возможные случаи:
+            1) пользователь 1 отписывается от существующей подписки;
+            2) пользователь 1 отписывается от несуществующей подписки;
+            3) пользователь 1 отписывается от несуществующего пользователя."""
+        USER_ID: int = 1
+        TO_SUBSCRIBE_USER: int = 2
+        test_user: User = User.objects.get(id=USER_ID)
+        already_subscribed: User = User.objects.get(id=TO_SUBSCRIBE_USER)
+        Subscriptions.objects.create(
+            subscriber=test_user,
+            subscription_to=already_subscribed)
+        client: APIClient = anon_client()
+        response = client.post(
+            f'{URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id)}')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        client: APIClient = auth_token_client(user_id=USER_ID)
+        response = client.delete(
+            f'{URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id)}')
+        assert response.status_code == status_code
+        try:
+            data: dict = json.loads(response.content)
+        except json.decoder.JSONDecodeError:
+            """При статусе 204 возвращается ответ без контента."""
+            data: dict = {}
+        assert data == expected_data
+        return
+
+    @pytest.mark.parametrize('method', ['get', 'patch', 'put'])
+    def test_users_pk_subscribe_not_allowed(self, method: str) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту
+        "/api/v1/users/{pk}/subscribe/":
+            - GET;
+            - PATCH;
+            - PUT."""
+        client: APIClient = anon_client()
+        response = getattr(client, method)(URL_USERS_SET_PASSWORD)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        create_user_obj_with_hash(num=1)
+        client: APIClient = auth_token_client(user_id=1)
+        response = getattr(client, method)(URL_USERS_SET_PASSWORD)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_users_pk_subscription_get(self, create_users) -> None:
+        """Тест GET-запроса на личную страницу пользователя по эндпоинту
+        "/api/v1/users/{pk}/subscribe/" для анонимного и авторизированного
+        клиента.
+        Используется фикстура "create_users" для наполнения тестовой
+        БД пользователями.
+        В классе используется пагинация. В рамках теста производится анализ
+        содержимого "results" для первого элемента. Тест непосредственно
+        пагинации производится в функции "test_view_sets_pagination".
+        В тесте создается подписка пользователя 1 на пользователя 2."""
+        USER_ID: int = 1
+        TO_SUBSCRIBE_USER: int = 2
+        subscriber: User = User.objects.get(id=USER_ID)
+        subscription_to: User = User.objects.get(id=TO_SUBSCRIBE_USER)
+        Subscriptions.objects.create(
+            subscriber=subscriber,
+            subscription_to=subscription_to)
+        client: APIClient = anon_client()
+        response = client.get(URL_USERS_SUBSCRIPTIONS)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        client: APIClient = auth_token_client(user_id=USER_ID)
+        response = client.get(URL_USERS_SUBSCRIPTIONS)
+        assert response.status_code == status.HTTP_200_OK
+        results_pagination: dict = json.loads(response.content)['results']
+        assert len(results_pagination) == 1
+        assert results_pagination[0] == {
+            'email': 'test_user_email_2@email.com',
+            'id': 2,
+            'username': 'test_user_username_2',
+            'first_name': 'test_user_first_name_2',
+            'last_name': 'test_user_last_name_2',
+            'is_subscribed': True,
+            'recipes_count': 0,
+            'recipes': []}
+        return
+
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
+    def test_users_pk_subscription_not_allowed(self, method: str) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту
+        "/api/v1/users/{pk}/subscribe/":
+            - GET;
+            - PATCH;
+            - PUT."""
+        client: APIClient = anon_client()
+        response = getattr(client, method)(URL_USERS_SUBSCRIPTIONS)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        create_user_obj_with_hash(num=1)
+        client: APIClient = auth_token_client(user_id=1)
+        response = getattr(client, method)(URL_USERS_SUBSCRIPTIONS)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    @pytest.mark.parametrize(
+        'client_func, status',
+        [(anon_client, status.HTTP_401_UNAUTHORIZED),
+         (auth_token_client, status.HTTP_204_NO_CONTENT)])
+    def test_users_set_password_post(self, client_func, status) -> None:
         """Тест POST-запроса на страницу изменения пароля по эндпоинту
         "/api/users/set_password/" для авторизованного клиента."""
-        test_user: User = create_user_obj_with_hash(num=1)
-        client: APIClient = auth_token_client(user=test_user)
+        create_user_obj_with_hash(num=1)
+        client: APIClient = client_func()
         NEW_PASSWORD: str = 'some_new_data_pass'
         data: dict = {
             'current_password': 'test_user_password_1',
@@ -482,24 +591,22 @@ class TestCustomUserViewSet():
             URL_USERS_SET_PASSWORD,
             json.dumps(data),
             content_type='application/json')
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert response.status_code == status
 
-    def test_users_get_token(self) -> None:
-        """Тест POST-запроса на страницу получения токена по эндпоинту
-        "/api/auth/token/login/" для анонимного клиента."""
-        test_user: User = create_user_obj_with_hash(num=1)
-        token, _ = Token.objects.get_or_create(user=test_user)
-        client = anon_client()
-        data: dict = {
-            'username': 'test_user_username_1',
-            'password': 'test_user_password_1'}
-        response = client.post(
-            URL_AUTH_LOGIN,
-            json.dumps(data),
-            content_type='application/json')
-        assert response.status_code == status.HTTP_200_OK
-        content = json.loads(response.content)
-        assert content['auth_token'] == token.key
+    @pytest.mark.parametrize('method', ['delete', 'get', 'patch', 'put'])
+    def test_users_set_password_not_allowed(self, method: str) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/users/set_password/":
+            - DELETE;
+            - GET;
+            - PATCH;
+            - PUT."""
+        client: APIClient = anon_client()
+        response = getattr(client, method)(URL_USERS_SET_PASSWORD)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        create_user_obj_with_hash(num=1)
+        client: APIClient = auth_token_client(user_id=1)
+        response = getattr(client, method)(URL_USERS_SET_PASSWORD)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
 
 @pytest.mark.django_db
@@ -512,8 +619,7 @@ class TestIngredientsViewSet():
         'measurement_unit': 'батон'}
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_ingredients_get(
-            self, client_func, create_ingredients) -> None:
+    def test_ingredients_get(self, client_func, create_ingredients) -> None:
         """Тест GET-запроса списка ингредиентов по эндпоинту
         "/api/v1/ingredients/" для анонимного и авторизированного клиента.
         Используется фикстура "create_ingredients" для наполнения
@@ -530,14 +636,28 @@ class TestIngredientsViewSet():
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_ingredients_get_pk(
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
+    def test_ingredients_not_allowed(
+            self, client_func, method: str) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/ingredients/":
+            - DELETE;
+            - PATCH;
+            - POST;
+            - PUT."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(URL_INGREDIENTS)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        return
+
+    @pytest.mark.parametrize('client_func', [anon_client, auth_client])
+    def test_ingredients_pk_get(
             self, client_func, create_ingredients) -> None:
         """Тест GET-запроса на ингредиент по эндпоинту
         "/api/v1/ingredients/{pk}/" для анонимного и авторизированного клиента.
         Используется фикстура "create_ingredients" для наполнения
         тестовой БД ингредиентами."""
         client: APIClient = client_func()
-        response = client.get(f'{URL_INGREDIENTS}1/')
+        response = client.get(URL_INGREDIENTS_PK.format(pk=1))
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == self.FIRST_INGREDIENT_EXP
@@ -545,17 +665,16 @@ class TestIngredientsViewSet():
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
-    def test_recipes_not_allowed_methods(
-            self, client_func, method, create_ingredients) -> None:
-        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/recipes/":
+    def test_ingredients_pk_not_allowed(
+            self, client_func, method: str, create_ingredients) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту
+        "/api/v1/ingredients/{pk}/":
             - DELETE;
             - PATCH;
             - POST;
-            - PUT.
-        Используется фикстура "create_ingredients" для наполнения
-        тестовой БД ингредиентами."""
+            - PUT."""
         client: APIClient = client_func()
-        response = getattr(client, method)(URL_TAGS)
+        response = getattr(client, method)(URL_INGREDIENTS_PK.format(pk=1))
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
@@ -572,9 +691,7 @@ class TestRecipesViewSet():
         к формату Python."""
         response = client.post(
             URL_RECIPES, json.dumps(data), content_type='application/json')
-        status_code: status = response.status_code
-        data: dict = json.loads(response.content)
-        return status_code, data
+        return response.status_code, json.loads(response.content)
 
     @pytest.mark.parametrize('is_admin, status_del_other', [
         (False, status.HTTP_403_FORBIDDEN),
@@ -596,7 +713,7 @@ class TestRecipesViewSet():
         author_user: User = User.objects.get(id=ID_AUTHOR)
         author_user.is_staff = is_admin
         author_user.save()
-        client: APIClient = auth_token_client(user=author_user)
+        client: APIClient = auth_token_client(user_id=ID_AUTHOR)
         response = client.delete(f'{URL_RECIPES}{ID_AUTHOR}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
         response = client.delete(f'{URL_RECIPES}{ID_ANOTHER}/')
@@ -694,13 +811,12 @@ class TestRecipesViewSet():
         assert data == expected_data
         return
 
-    def test_recipes_not_allowed_methods(self, create_recipes_users) -> None:
+    def test_recipes_not_allowed(self, create_recipes_users) -> None:
         """Тест запрета на CRUD запросы к эндпоинту "/api/v1/recipes/":
             - PUT.
         Используется фикстура "create_recipes_users" для наполнения тестовой БД
         рецептами с тегами и ингредиентами."""
-        test_user: User = User.objects.get(id=1)
-        client: APIClient = auth_token_client(user=test_user)
+        client: APIClient = auth_token_client()
         response = client.put(f'{URL_RECIPES}1/')
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
@@ -811,7 +927,7 @@ class TestRecipesViewSet():
             create_shopping_cart_obj(
                 recipe=Recipes.objects.get(id=i),
                 user=test_user)
-        client: APIClient = auth_token_client(user=test_user)
+        client: APIClient = auth_token_client()
         response = client.get(path=f'{URL_RECIPES}download_shopping_cart/')
         assert response.status_code == status.HTTP_200_OK
         """Запрещается смешивание байтовых и не байтовых литералов в одной
@@ -875,7 +991,7 @@ class TestTagsViewSet():
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     @pytest.mark.parametrize('method', ['delete', 'patch', 'post', 'put'])
-    def test_tags_not_allowed_methods(self, client_func, method) -> None:
+    def test_tags_not_allowed(self, client_func, method: str) -> None:
         """Тест запрета на CRUD запросы к эндпоинту "/api/v1/tags/":
             - DELETE;
             - PATCH;
