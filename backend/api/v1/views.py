@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -80,8 +81,10 @@ class CustomUserViewSet(ModelViewSet):
             subscriber=request.user).select_related('subscription_to')
         users: list[User] = [subscription.subscription_to
                              for subscription in subscriptions]
-        serializer = self.get_serializer(users, many=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginated_users = paginator.paginate_queryset(users, request)
+        serializer = self.get_serializer(paginated_users, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     @action(detail=False,
             methods=('DELETE', 'POST'),
@@ -110,7 +113,7 @@ class CustomUserViewSet(ModelViewSet):
                 subscription_to=subscription_to)
             serializer = CustomUserSubscriptionsSerializer(subscription_to)
             data: dict = serializer.data
-            status_code: status = status.HTTP_200_OK
+            status_code: status = status.HTTP_201_CREATED
         return Response(data=data, status=status_code)
 
 
