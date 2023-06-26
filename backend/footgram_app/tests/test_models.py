@@ -405,12 +405,8 @@ class TestRecipesModel():
                 name='test_recipe_name',
                 text='test_recipe_text')
         assert str(err.value) == (
-            # ToDo: uncomment 3 rows:
-            # "{'cooking_time': ['Время должно составлять
-            #  не менее 1 минуты!'], "
-            # "'image': ['Это поле не может быть пустым.']}")
-            # ToDo: delete 1 row:
-            "{'cooking_time': ['Время должно составлять не менее 1 минуты!']}")
+            "{'cooking_time': ['Время должно составлять не менее 1 минуты!'], "
+            "'image': ['Это поле не может быть пустым.']}")
         return
 
     def test_invalid_name(self) -> None:
@@ -424,11 +420,8 @@ class TestRecipesModel():
                 name=f'{"a"*129}',
                 text='test_recipe_text')
         assert str(err.value) == (
-            # ToDo: uncomment 2 rows:
-            # "{'image': ['Это поле не может быть пустым.'], "
-            # "'name': ['Убедитесь, что это значение содержит не более 128 "
-            # ToDo: delete 1 row:
-            "{'name': ['Убедитесь, что это значение содержит не более 128 "
+            "{'image': ['Это поле не может быть пустым.'], "
+            "'name': ['Убедитесь, что это значение содержит не более 128 "
             "символов (сейчас 129).']}")
         assert Ingredients.objects.all().count() == 0
         return
@@ -445,8 +438,7 @@ class TestRecipesModel():
                 text='')
         assert str(err.value) == (
             "{'cooking_time': ['Значение “” должно быть целым числом.'], "
-            # ToDo: uncomment 1 row:
-            # "'image': ['Это поле не может быть пустым.'], "
+            "'image': ['Это поле не может быть пустым.'], "
             "'name': ['Это поле не может быть пустым.'], "
             "'text': ['Это поле не может быть пустым.']}")
         assert Ingredients.objects.all().count() == 0
@@ -465,8 +457,7 @@ class TestRecipesModel():
         assert str(err.value) == (
             "{'author': ['Это поле не может иметь значение NULL.'], "
             "'cooking_time': ['Это поле не может иметь значение NULL.'], "
-            # ToDo: uncomment 1
-            # "'image': ['Это поле не может быть пустым.'], "
+            "'image': ['Это поле не может быть пустым.'], "
             "'name': ['Это поле не может иметь значение NULL.'], "
             "'text': ['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
