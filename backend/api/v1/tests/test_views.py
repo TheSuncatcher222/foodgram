@@ -25,7 +25,7 @@ from footgram_app.tests.test_models import (
 
 IMAGE_FILE: ContentFile = ContentFile(IMAGE_BYTES)
 IMAGE_UPLOADED: SimpleUploadedFile = SimpleUploadedFile(
-    f'test_image_1.gif', IMAGE_FILE.read(), content_type='image/gif')
+    'test_image_1.gif', IMAGE_FILE.read(), content_type='image/gif')
 
 URL_API_V1: str = '/api/v1/'
 URL_AUTH: str = f'{URL_API_V1}auth/token/'
@@ -144,10 +144,6 @@ def create_users() -> None:
     for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
         create_user_obj(num=i)
     return
-
-
-# ToDo: заменить в тестах "== status" на "== status_code"
-# ToDo: проверить, что все URL указаны не через f-строку (f'{URL_TAGS}1/')
 
 
 @pytest.mark.django_db
@@ -442,7 +438,7 @@ class TestCustomUserViewSet():
         Используется фикстура "create_users" для наполнения тестовой
         БД пользователями."""
         client: APIClient = client_func()
-        response = client.get(f'{URL_USERS}1/')
+        response = client.get(URL_USERS_PK.format(pk=1))
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == {
@@ -466,7 +462,7 @@ class TestCustomUserViewSet():
         Используется фикстура "create_users" для наполнения тестовой
         БД пользователями."""
         client: APIClient = client_func()
-        response = getattr(client, method)(f'{URL_USERS}1/')
+        response = getattr(client, method)(URL_USERS_PK.format(pk=1))
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         return
 
@@ -520,11 +516,11 @@ class TestCustomUserViewSet():
             subscription_to=subscription_to)
         client: APIClient = anon_client()
         response = client.post(
-            f'{URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id)}')
+            URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id))
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         client: APIClient = auth_token_client(user_id=USER_ID)
         response = client.post(
-            f'{URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id)}')
+            URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id))
         assert response.status_code == status_code
         data: dict = json.loads(response.content)
         assert data == expected_data
@@ -566,11 +562,11 @@ class TestCustomUserViewSet():
             subscription_to=already_subscribed)
         client: APIClient = anon_client()
         response = client.post(
-            f'{URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id)}')
+            URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id))
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         client: APIClient = auth_token_client(user_id=USER_ID)
         response = client.delete(
-            f'{URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id)}')
+            URL_USERS_SUBSCRIPTION_UPDATE.format(pk=to_user_id))
         assert response.status_code == status_code
         try:
             data: dict = json.loads(response.content)
@@ -647,10 +643,10 @@ class TestCustomUserViewSet():
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
     @pytest.mark.parametrize(
-        'client_func, status',
+        'client_func, status_code',
         [(anon_client, status.HTTP_401_UNAUTHORIZED),
          (auth_token_client, status.HTTP_204_NO_CONTENT)])
-    def test_users_set_password_post(self, client_func, status) -> None:
+    def test_users_set_password_post(self, client_func, status_code) -> None:
         """Тест POST-запроса на страницу изменения пароля по эндпоинту
         "/api/users/set_password/" для авторизованного клиента."""
         create_user_obj_with_hash(num=1)
@@ -663,7 +659,7 @@ class TestCustomUserViewSet():
             URL_USERS_SET_PASSWORD,
             json.dumps(data),
             content_type='application/json')
-        assert response.status_code == status
+        assert response.status_code == status_code
 
     @pytest.mark.parametrize('method', ['delete', 'get', 'patch', 'put'])
     def test_users_set_password_not_allowed(self, method: str) -> None:
@@ -1050,14 +1046,14 @@ class TestRecipesViewSet():
         author_user.is_staff = is_admin
         author_user.save()
         client: APIClient = anon_client()
-        response = client.delete(f'{URL_RECIPES}{ID_AUTHOR}/')
+        response = client.delete(URL_RECIPES_PK.format(pk=ID_AUTHOR))
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        response = client.delete(f'{URL_RECIPES}{ID_ANOTHER}/')
+        response = client.delete(URL_RECIPES_PK.format(pk=ID_ANOTHER))
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         client: APIClient = auth_token_client(user_id=ID_AUTHOR)
-        response = client.delete(f'{URL_RECIPES}{ID_AUTHOR}/')
+        response = client.delete(URL_RECIPES_PK.format(pk=ID_AUTHOR))
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        response = client.delete(f'{URL_RECIPES}{ID_ANOTHER}/')
+        response = client.delete(URL_RECIPES_PK.format(pk=ID_ANOTHER))
         assert response.status_code == status_code
         return
 
@@ -1099,7 +1095,7 @@ class TestRecipesViewSet():
             'text': 'test_recipe_text_1',
             'cooking_time': 1}
         client: APIClient = client_func()
-        response = client.get(f'{URL_RECIPES}1/')
+        response = client.get(URL_RECIPES_PK.format(pk=1))
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
         assert data == expected_data
@@ -1277,7 +1273,7 @@ class TestRecipesViewSet():
                 recipe=Recipes.objects.get(id=i),
                 user=test_user)
         client: APIClient = auth_token_client()
-        response = client.get(path=f'{URL_RECIPES}download_shopping_cart/')
+        response = client.get(URL_SHOPPING_LIST)
         assert response.status_code == status.HTTP_200_OK
         """Запрещается смешивание байтовых и не байтовых литералов в одной
         строке. В связи с этим, все строки необходимо привести к байтовым
