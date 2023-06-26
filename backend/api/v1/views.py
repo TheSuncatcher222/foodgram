@@ -4,6 +4,7 @@ import pandas
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import MethodNotAllowed
@@ -12,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from api.v1.filters import RecipesFilter
 from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
     CustomUserSerializer, CustomUserSubscriptionsSerializer,
@@ -182,6 +184,9 @@ class RecipesViewSet(ModelViewSet):
     3) ".../recipes/download_shopping_cart/" - формирует csv файл с элементами
                                                пользовательской корзины.
     """
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipesFilter
+    filterset_fields = ('author', 'name')
     http_method_names = ('delete', 'get', 'list', 'patch', 'post')
     permission_classes = (IsAuthorOrAdminOrReadOnly,)
     serializer_class = RecipesSerializer
