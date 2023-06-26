@@ -87,7 +87,9 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle'],
     'DEFAULT_THROTTLE_RATES': {
         'user': '10000/day',
-        'anon': '1000/day'}
+        'anon': '1000/day'},
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.FileUploadParser']
 }
 
 LANGUAGE_CODE = 'ru-ru'
