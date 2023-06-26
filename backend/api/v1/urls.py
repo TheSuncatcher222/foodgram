@@ -3,6 +3,7 @@ from djoser.views import TokenCreateView, TokenDestroyView, UserViewSet
 from rest_framework.routers import DefaultRouter
 
 from api.v1.views import (
+    csv_import_ingredients,
     CustomUserViewSet, IngredientsViewSet, RecipesViewSet, TagsViewSet)
 
 roots: list[dict] = [
@@ -32,5 +33,8 @@ urlpatterns = [
     path('users/set_password/',
          UserViewSet.as_view({'post': 'set_password'}),
          name='set_password'),
+    path('csv-import/ingredients/',
+         csv_import_ingredients,
+         name='ingredients_csv_import'),
     path('', include(router.urls)),
 ]
