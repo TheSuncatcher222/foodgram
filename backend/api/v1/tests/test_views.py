@@ -3,6 +3,8 @@ import os
 
 import pytest
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from pathlib import Path
 from rest_framework import status
@@ -16,9 +18,14 @@ from footgram_app.models import (
     RECIPES_MEDIA_ROOT,
     Ingredients, Recipes, Subscriptions, Tags)
 from footgram_app.tests.test_models import (
+    IMAGE_BYTES,
     create_ingredient_obj, create_recipe_ingredient_obj, create_recipe_obj,
     create_recipe_tag_obj, create_shopping_cart_obj, create_tag_obj,
     create_user_obj, create_user_obj_with_hash)
+
+IMAGE_FILE: ContentFile = ContentFile(IMAGE_BYTES)
+IMAGE_UPLOADED: SimpleUploadedFile = SimpleUploadedFile(
+    f'test_image_1.gif', IMAGE_FILE.read(), content_type='image/gif')
 
 URL_API_V1: str = '/api/v1/'
 URL_AUTH: str = f'{URL_API_V1}auth/token/'
@@ -1128,7 +1135,7 @@ class TestRecipesViewSet():
         (RECIPE_PATCH_INVALID_TIME_NONE,
          RECIPE_PATCH_INVALID_TIME_NONE_EXP),
         (RECIPE_PATCH_INVALID_TIME_STR,
-         RECIPE_PATCH_INVALID_TIME_STR_EXP),])
+         RECIPE_PATCH_INVALID_TIME_STR_EXP)])
     def test_recipes_pk_patch_invalid(
             self,
             data: dict,
