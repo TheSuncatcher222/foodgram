@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
+    'django_filters',
     'api.apps.ApiConfig',
     'footgram_app.apps.FootgramAppConfig',
 ]
