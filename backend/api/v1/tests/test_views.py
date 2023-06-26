@@ -3,8 +3,6 @@ import os
 
 import pytest
 from django.conf import settings
-from django.core.files.base import ContentFile
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from pathlib import Path
 from rest_framework import status
@@ -18,7 +16,6 @@ from footgram_app.models import (
     RECIPES_MEDIA_ROOT,
     Ingredients, Recipes, Subscriptions, Tags)
 from footgram_app.tests.test_models import (
-    IMAGE_BYTES,
     create_ingredient_obj, create_recipe_ingredient_obj, create_recipe_obj,
     create_recipe_tag_obj, create_shopping_cart_obj, create_tag_obj,
     create_user_obj, create_user_obj_with_hash)
