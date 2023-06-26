@@ -220,9 +220,6 @@ class Recipes(Model):
                 message='Время должно составлять не менее 1 минуты!')],
         verbose_name='Время приготовления (мин.)')
     image = ImageField(
-        # ToDo: убрать параметры blank и null
-        blank=True,
-        null=True,
         upload_to=RECIPES_MEDIA_ROOT,
         verbose_name='Картинка рецепта')
     ingredients = ManyToManyField(
