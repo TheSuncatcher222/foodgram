@@ -1,10 +1,11 @@
 import csv
 
+import pandas
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -19,6 +20,43 @@ from api.v1.serializers import (
 from footgram_app.models import (
     Ingredients, Tags, Recipes, RecipesFavorites, RecipesIngredients,
     ShoppingCarts, Subscriptions)
+
+
+@api_view(['POST'])
+def csv_import_ingredients(request):
+    """Обрабатывает POST-запрос на эндпоинт ".../csv-import/ingredients/":
+        - проверяет права доступа: пользователь должен быть администратором;
+        - проверяет наличие csv-файла в запросе;
+        - производит его валидацию согласно модели "Ingredients";
+        - при успешной валидации создает объекты модели "Ingredients."""
+    if not request.user.is_staff:
+        return Response(
+            {'Ошибка': 'Доступ запрещен.'},
+            status=403)
+    if request.META.get('CONTENT_TYPE') != 'text/csv':
+        return Response(
+            {'Ошибка': 'Неправильный тип содержимого. Ожидается text/csv.'},
+            status=400)
+    file = request.FILES.get('file')
+    if not file:
+        return Response(
+            {'Ошибка': 'К запросу не приложен файл.'},
+            status=400)
+    try:
+        """Согласно документации, присылаемые файлы не имеют заголовка, и его
+        нужно указать вручную при чтении."""
+        df = pandas.read_csv(
+            file, header=None, names=['name', 'measurement_unit'])
+        objects: list = []
+        for index, row in df.iterrows():
+            objects.append(
+                Ingredients(
+                    name=row['name'],
+                    measurement_unit=row['measurement_unit']))
+        Ingredients.objects.bulk_create(objects)
+        return Response({'success': 'CSV file imported successfully'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
 
 
 class CustomUserViewSet(ModelViewSet):
