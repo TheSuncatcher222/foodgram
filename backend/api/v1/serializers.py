@@ -291,15 +291,50 @@ class RecipesSerializer(ModelSerializer):
         Так как на вход при POST запросе ожидается список целых чисел:
         id (ListField), невозможно осуществить валидацию при помощи
         сериализатора, требуется ручная проверка входящих данных."""
+        cooking_time: str = data.get('cooking_time', None)
+        if cooking_time is None:
+            raise ValidationError({
+                "cooking_time": ["Обязательное поле."]})
+        ingredients = data.get('recipe_ingredient', None)
+        if ingredients is None:
+            raise ValidationError({
+                "ingredients": ["Обязательное поле."]})
+        if len(ingredients) == 0:
+            raise ValidationError({
+                "ingredients": ["Поле не может быть пустым."]})
+        for ingredient in ingredients:
+            if 'id' not in ingredient:
+                raise ValidationError(
+                    {'ingredients': {'id': ["Обязательное поле."]}})
+            if 'amount' not in ingredient:
+                raise ValidationError(
+                    {'ingredients': {'amount': ["Обязательное поле."]}})
+            if not isinstance(ingredient['amount'], float):
+                raise ValidationError(
+                    {'ingredients': {'amount': [
+                        'Недопустимый формат ввода! '
+                        'Укажите количество ингредиента.']}})
+        name: str = data.get('name', None)
+        if name is None:
+            raise ValidationError({
+                "name": ["Обязательное поле."]})
         tags: list[int] = self.context['request'].data.get('tags', None)
         if tags is None:
-            if self.context['request'].method == 'PATCH':
-                return data
             raise ValidationError({
                 "tags": ["Обязательное поле."]})
+        if not isinstance(tags, list):
+            raise ValidationError({
+                "tags": ["Укажите ID в формате списка."]})
+        if len(tags) == 0:
+            raise ValidationError({
+                "tags": ["Поле не может быть пустым."]})
         bad_ids: list = []
         for tag_id in tags:
-            if not Tags.objects.filter(id=tag_id).exists():
+            if not isinstance(tag_id, int):
+                bad_ids.append({
+                    'id': ['Недопустимый формат ввода! '
+                           'Укажите список ID тегов.']})
+            elif not Tags.objects.filter(id=tag_id).exists():
                 bad_ids.append({
                     'id': [f'Недопустимый первичный ключ "{tag_id}" '
                            '- объект не существует.']})
