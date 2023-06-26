@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import action, api_view
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -85,16 +86,15 @@ class CustomUserViewSet(ModelViewSet):
         """Возвращает статус 405 при попытке совершения DELETE-запроса.
         "Delete" включен явно в перечень разрешенных методов по причине того,
         что он требуется для дочернего @action "subscribe"."""
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        raise MethodNotAllowed(request.method)
 
     def get_queryset(self):
         """Обновляет метод передачи объектов модели в сериализатор:
             - устанавливает сортировку объектов по полю "id"
               (используется встроенная модель "User", в которой явным образом
               не задан мета-параметр "ordering")."""
-        queryset = super().get_queryset()
-        queryset = queryset.order_by('id')
-        return queryset
+        return User.objects.all(
+                ).prefetch_related('recipe_author').order_by('id')
 
     @action(detail=False,
             methods=('get',),
@@ -185,7 +185,10 @@ class RecipesViewSet(ModelViewSet):
     http_method_names = ('delete', 'get', 'list', 'patch', 'post')
     permission_classes = (IsAuthorOrAdminOrReadOnly,)
     serializer_class = RecipesSerializer
-    queryset = Recipes.objects.all()
+
+    def get_queryset(self):
+        return Recipes.objects.all(
+            ).select_related('author').prefetch_related('ingredients', 'tags')
 
     @action(detail=False,
             methods=('get',),
