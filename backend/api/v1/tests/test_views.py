@@ -44,6 +44,22 @@ URL_USERS_SUBSCRIPTIONS: str = f'{URL_USERS}subscriptions/'
 TEST_FIXTURES_OBJ_AMOUNT: int = 3
 
 
+def admin_token_client(user_id: int = 1) -> APIClient:
+    """Возвращает объект авторизированного клиента c токеном.
+    Присваивает пользователю клиента права администратора.
+    Токен записывается в заголовок запросов и применяется автоматически.
+    Токен формируется для переданного экземпляра модели "Users".
+    По-умолчанию берется пользователь с id=1.
+    """
+    user_admin: User = User.objects.get(id=user_id)
+    user_admin.is_staff = True
+    user_admin.save()
+    token, _ = Token.objects.get_or_create(user=user_admin)
+    admin_token_client: APIClient = anon_client()
+    admin_token_client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+    return admin_token_client
+
+
 def anon_client() -> APIClient:
     """Возвращает объект анонимного клиента."""
     return APIClient()
@@ -732,42 +748,211 @@ class TestIngredientsViewSet():
 class TestRecipesViewSet():
     """Производит тест вью-сета "RecipesViewSet"."""
 
-    def recipes_post(
-            self, client: APIClient, data: dict) -> tuple:
-        """Совершает POST-запрос к списку рецептов по эндпоинту
-        "/api/v1/recipes/" от лица переданного клиента.
-        Возвращает HTTP статус код ответа и JSON данные, приведенные
-        к формату Python."""
-        response = client.post(
-            URL_RECIPES, json.dumps(data), content_type='application/json')
-        return response.status_code, json.loads(response.content)
+    RECIPE_VALID: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_VALID_EXP: dict = {
+        "tags": [
+          {"id": 1,
+           "name": "test_tag_name_1",
+           "color": "#000001",
+           "slug": "test_tag_slug_1"}],
+        "author": {
+          "email": "test_user_1@email.com",
+          "id": 1,
+          "username": "test_user_username_1",
+          "first_name": "test_user_first_name_1",
+          "last_name": "test_user_last_name_1",
+          "is_subscribed": False},
+        "ingredients": [
+          {"id": 1,
+           "name": "test_ingredient_name_1",
+           "measurement_unit": "батон",
+           "amount": 1000.0},
+          {"id": 2,
+           "name": "test_ingredient_name_2",
+           "measurement_unit": "батон",
+           "amount": 2000.0}],
+        "is_favorited": False,
+        "is_in_shopping_cart": False,
+        "name": "Patch-name",
+        "image": None,
+        "text": "Patch-text",
+        "cooking_time": 3000}
 
-    @pytest.mark.parametrize('is_admin, status_del_other', [
-        (False, status.HTTP_403_FORBIDDEN),
-        (True, status.HTTP_204_NO_CONTENT)])
-    def test_recipes_delete_allowed_author(
-            self,
-            is_admin: bool,
-            status_del_other: status,
-            create_recipes_ingredients_tags_users) -> None:
-        """""Тест DELETE-запроса на рецепт по эндпоинту "/api/v1/recipes/{pk}/"
-        от лица автора рецепта и автора-администратора.
-        Рассматриваются случаи:
-            - удаление своего рецепта (доступно автору и администратору);
-            - удаление чужого рецепта (доступно администратору).
-        Используется фикстура "create_recipes_ingredients_tags_users"
-        для наполнения тестовой БД рецептами с тегами и ингредиентами."""
-        ID_AUTHOR: int = 1
-        ID_ANOTHER: int = 2
-        author_user: User = User.objects.get(id=ID_AUTHOR)
-        author_user.is_staff = is_admin
-        author_user.save()
-        client: APIClient = auth_token_client(user_id=ID_AUTHOR)
-        response = client.delete(f'{URL_RECIPES}{ID_AUTHOR}/')
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        response = client.delete(f'{URL_RECIPES}{ID_ANOTHER}/')
-        assert response.status_code == status_del_other
-        return
+    RECIPE_PATCH_INVALID_TAG_NONE: dict = {
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_TAG_NONE_EXP: dict = {
+        "tags": ["Обязательное поле."]}
+    RECIPE_PATCH_INVALID_TAG_EMPTY: dict = {
+        'tags': [],
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_TAG_EMPTY_EXP: dict = {
+        "tags": ["Поле не может быть пустым."]}
+    RECIPE_PATCH_INVALID_TAG_STR: dict = {
+        'tags': ["a"],
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_TAG_STR_EXP: dict = {
+        "tags": [
+            {"id": ["Недопустимый формат ввода! Укажите список ID тегов."]}]}
+    RECIPE_PATCH_INVALID_TAG_NOT_LIST: dict = {
+        'tags': 1,
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_TAG_NOT_LIST_EXP: dict = {
+        "tags": ["Укажите ID в формате списка."]}
+    RECIPE_PATCH_INVALID_TAG_ID_BROKEN: dict = {
+        'tags': [100500],
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_TAG_ID_BROKEN_EXP: dict = {
+        "tags": [
+            {"id": ['Недопустимый первичный ключ "100500" '
+                    '- объект не существует.']}]}
+    RECIPE_PATCH_INVALID_INGR_NONE: dict = {
+        'tags': [1],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_INGR_NONE_EXP: dict = {
+        "ingredients": ["Обязательное поле."]}
+    RECIPE_PATCH_INVALID_INGR_EMPTY: dict = {
+        'tags': [1],
+        'ingredients': [],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_INGR_EMPTY_EXP: dict = {
+        "ingredients": ["Поле не может быть пустым."]}
+    RECIPE_PATCH_INVALID_INGR_ID_BROKEN: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': "a",
+             'amount': 1000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_INGR_ID_BROKEN_EXP: dict = {
+        "ingredients": [
+            {"id": ['Некорректный тип. Ожидалось значение первичного '
+                    'ключа, получен str.']}]}
+    RECIPE_PATCH_INVALID_INGR_ID_NOT_EXIST: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': 100500,
+             'amount': 1000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_INGR_ID_NOT_EXIST_EXP: dict = {
+        "ingredients": [{"id": ["Недопустимый первичный ключ \"100500\" "
+                                "- объект не существует."]}]}
+    RECIPE_PATCH_INVALID_AMOUNT_NONE: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': 1}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_AMOUNT_NONE_EXP: dict = {
+        'ingredients': {'amount': ['Обязательное поле.']}}
+    RECIPE_PATCH_INVALID_INGR_AMOUNT_STR: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': 1,
+             'amount': "a"}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_INGR_AMOUNT_STR_EXP: dict = {
+        'ingredients': [{'amount': ['Требуется численное значение.']}]}
+    RECIPE_PATCH_INVALID_NAME_NONE: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_NAME_NONE_EXP: dict = {
+        "name": ["Обязательное поле."]}
+    RECIPE_PATCH_INVALID_NAME_LONG: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': "a"*1000,
+        'text': 'Patch-text',
+        'cooking_time': 3000}
+    RECIPE_PATCH_INVALID_NAME_LONG_EXP: dict = {
+        "name": ['Убедитесь, что это значение '
+                 'содержит не более 128 символов.']}
+    RECIPE_PATCH_INVALID_TIME_NONE: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text'}
+    RECIPE_PATCH_INVALID_TIME_NONE_EXP: dict = {
+        'cooking_time': ['Обязательное поле.']}
+    RECIPE_PATCH_INVALID_TIME_STR: dict = {
+        'tags': [1],
+        'ingredients': [
+            {'id': 1,
+             'amount': 1000},
+            {'id': 2,
+             'amount': 2000}],
+        'name': 'Patch-name',
+        'text': 'Patch-text',
+        'cooking_time': "десять"}
+    RECIPE_PATCH_INVALID_TIME_STR_EXP: dict = {
+        'cooking_time': ['Введите правильное число.']}
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
     def test_recipes_get(
@@ -816,8 +1001,61 @@ class TestRecipesViewSet():
         assert results_pagination[0] == expected_data
         return
 
+    @pytest.mark.parametrize(
+            'client_func, status_code',
+            [(anon_client, status.HTTP_401_UNAUTHORIZED),
+             (auth_token_client, status.HTTP_405_METHOD_NOT_ALLOWED)])
+    @pytest.mark.parametrize('method', ['delete', 'patch', 'put'])
+    def test_recipes_not_allowed(
+            self,
+            client_func,
+            status_code: str,
+            method: str,
+            create_users) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/recipes/":
+            - DELETE;
+            - PATCH;
+            - POST;
+            - PUT."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(URL_RECIPES)
+        assert response.status_code == status_code
+        return
+
+    @pytest.mark.parametrize('is_admin, status_code', [
+        (False, status.HTTP_403_FORBIDDEN),
+        (True, status.HTTP_204_NO_CONTENT)])
+    def test_recipes_pk_delete(
+            self,
+            is_admin: bool,
+            status_code: status,
+            create_recipes_ingredients_tags_users) -> None:
+        """""Тест DELETE-запроса на рецепт по эндпоинту "/api/v1/recipes/{pk}/"
+        от лица автора рецепта и автора-администратора.
+        Рассматриваются случаи:
+            - удаление своего рецепта (доступно автору и администратору);
+            - удаление чужого рецепта (доступно администратору).
+        Используется фикстура "create_recipes_ingredients_tags_users"
+        для наполнения тестовой БД рецептами с тегами и ингредиентами."""
+        ID_AUTHOR: int = 1
+        ID_ANOTHER: int = 2
+        author_user: User = User.objects.get(id=ID_AUTHOR)
+        author_user.is_staff = is_admin
+        author_user.save()
+        client: APIClient = anon_client()
+        response = client.delete(f'{URL_RECIPES}{ID_AUTHOR}/')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        response = client.delete(f'{URL_RECIPES}{ID_ANOTHER}/')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        client: APIClient = auth_token_client(user_id=ID_AUTHOR)
+        response = client.delete(f'{URL_RECIPES}{ID_AUTHOR}/')
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        response = client.delete(f'{URL_RECIPES}{ID_ANOTHER}/')
+        assert response.status_code == status_code
+        return
+
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
-    def test_recipes_get_pk(
+    def test_recipes_pk_get(
             self,
             client_func,
             create_recipes_ingredients_tags_users) -> None:
@@ -860,42 +1098,121 @@ class TestRecipesViewSet():
         assert data == expected_data
         return
 
-    def test_recipes_not_allowed(self, create_recipes_users) -> None:
-        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/recipes/":
-            - PUT.
-        Используется фикстура "create_recipes_users" для наполнения тестовой БД
-        рецептами с тегами и ингредиентами."""
-        client: APIClient = auth_token_client()
-        response = client.put(f'{URL_RECIPES}1/')
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+    @pytest.mark.parametrize('data, expected_data', [
+        (RECIPE_PATCH_INVALID_TAG_NONE,
+         RECIPE_PATCH_INVALID_TAG_NONE_EXP),
+        (RECIPE_PATCH_INVALID_TAG_EMPTY,
+         RECIPE_PATCH_INVALID_TAG_EMPTY_EXP),
+        (RECIPE_PATCH_INVALID_TAG_STR,
+         RECIPE_PATCH_INVALID_TAG_STR_EXP),
+        (RECIPE_PATCH_INVALID_TAG_NOT_LIST,
+         RECIPE_PATCH_INVALID_TAG_NOT_LIST_EXP),
+        (RECIPE_PATCH_INVALID_TAG_ID_BROKEN,
+         RECIPE_PATCH_INVALID_TAG_ID_BROKEN_EXP),
+        (RECIPE_PATCH_INVALID_INGR_NONE,
+         RECIPE_PATCH_INVALID_INGR_NONE_EXP),
+        (RECIPE_PATCH_INVALID_INGR_EMPTY,
+         RECIPE_PATCH_INVALID_INGR_EMPTY_EXP),
+        (RECIPE_PATCH_INVALID_INGR_ID_BROKEN,
+         RECIPE_PATCH_INVALID_INGR_ID_BROKEN_EXP),
+        (RECIPE_PATCH_INVALID_INGR_ID_NOT_EXIST,
+         RECIPE_PATCH_INVALID_INGR_ID_NOT_EXIST_EXP),
+        (RECIPE_PATCH_INVALID_AMOUNT_NONE,
+         RECIPE_PATCH_INVALID_AMOUNT_NONE_EXP),
+        (RECIPE_PATCH_INVALID_INGR_AMOUNT_STR,
+         RECIPE_PATCH_INVALID_INGR_AMOUNT_STR_EXP),
+        (RECIPE_PATCH_INVALID_NAME_NONE,
+         RECIPE_PATCH_INVALID_NAME_NONE_EXP),
+        (RECIPE_PATCH_INVALID_NAME_LONG,
+         RECIPE_PATCH_INVALID_NAME_LONG_EXP),
+        (RECIPE_PATCH_INVALID_TIME_NONE,
+         RECIPE_PATCH_INVALID_TIME_NONE_EXP),
+        (RECIPE_PATCH_INVALID_TIME_STR,
+         RECIPE_PATCH_INVALID_TIME_STR_EXP),])
+    def test_recipes_pk_patch_invalid(
+            self,
+            data: dict,
+            expected_data: dict,
+            create_recipes_ingredients_tags_users) -> None:
+        """""Тест PATHC-запроса на рецепт по эндпоинту "/api/v1/recipes/{pk}/"
+        для авторизированного клиента-автора:
+            - с отсутствующим полем "tags";
+            - с пустым полем "tags",
+            - с указанием в поле "tags" списка, содержащего строковое значение;
+            - с указанием в поле "tags" числа, а не списка;
+            - с указанием в поле "tags" ID несуществующего тега;
+            - с отсутствующим полем "ingredients";
+            - с пустым полем "ingredients";
+            - с отсутствующим ключом "id" в "ingredients";
+            - с указанием в ключе "id" "ingredients" строкового значения;
+            - с указанием в ключе "id" "ingredients" ID несуществующего
+              ингредиента;
+            - с отсутствующим ключом "amount" в "ingredients";
+            - с указанием в ключе "amount" "ingredients" строкового значения;
+            - с отсутствующим полем "name"
+            """
+        TARGET_ID: int = 1
+        client: APIClient = auth_token_client(user_id=TARGET_ID)
+        response = client.patch(
+            path=URL_RECIPES_PK.format(pk=TARGET_ID),
+            data=json.dumps(data),
+            content_type='application/json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data: dict = json.loads(response.content)
+        assert data == expected_data
         return
 
-    # ToDo: раскомментировать, когда будет готов сериализатор
-    # @pytest.mark.parametrize('user, response_code', [
-    #     ('author', status.HTTP_200_OK),
-    #     ('admin', status.HTTP_403_FORBIDDEN)])
-    # def test_recipes_patch_allowed_method(
-    #         self,
-    #         user: str,
-    #         response_code: status,
-    #         create_recipes_ingredients_tags_users) -> None:
-    #     """""Тест PATCH-запроса на рецепт по эндпоинту
-    #     "/api/v1/recipes/{pk}/"
-    #     для анонимного и авторизированного клиента.
-    #     Используется фикстура "create_recipes_ingredients_tags_users"
-    #     для наполнения тестовой БД рецептами с тегами и ингредиентами."""
-    #     ID_TO_PATCH: int = 1
-    #     author_user: User = User.objects.get(id=ID_TO_PATCH)
-    #     admin_user: User = User.objects.get(id=(ID_TO_PATCH+1))
-    #     admin_user.is_staff = True
-    #     admin_user.save()
-    #     users: dict[str, User] = {
-    #         'author': author_user,
-    #         'admin': admin_user}
-    #     client: APIClient = auth_token_client(user=users[user])
-    #     response = client.patch(f'{URL_RECIPES}{ID_TO_PATCH}/')
-    #     assert response.status_code == response_code
-    #     return
+    @pytest.mark.parametrize(
+        'client_func, status_code_self, status_code_another',
+        [(anon_client,
+          status.HTTP_401_UNAUTHORIZED,
+          status.HTTP_401_UNAUTHORIZED),
+         (auth_token_client,
+          status.HTTP_200_OK,
+          status.HTTP_403_FORBIDDEN),
+         (admin_token_client,
+          status.HTTP_200_OK,
+          status.HTTP_403_FORBIDDEN)])
+    def test_recipes_patch_allowed_method(
+            self,
+            client_func,
+            status_code_self: status,
+            status_code_another: status,
+            create_recipes_ingredients_tags_users) -> None:
+        """""Тест PATCH-запроса на рецепт по эндпоинту "/api/v1/recipes/{pk}/"
+        для анонимного и авторизированного клиента.
+        Используется фикстура "create_recipes_ingredients_tags_users"
+        для наполнения тестовой БД рецептами с тегами и ингредиентами."""
+        client: APIClient = client_func()
+        """По-умолчанию авторизированный клиент действует от лица пользователя
+        с id=1. Поэтому первый запрос "на свой пост" будет с pk=1, а на
+        "чужой пост" - с pk=2."""
+        response = client.patch(
+            path=URL_RECIPES_PK.format(pk=1),
+            data=json.dumps(self.RECIPE_VALID),
+            content_type='application/json')
+        assert response.status_code == status_code_self
+        response = client.patch(URL_RECIPES_PK.format(pk=2))
+        assert response.status_code == status_code_another
+        return
+
+    @pytest.mark.parametrize(
+            'client_func, status_code',
+            [(anon_client, status.HTTP_401_UNAUTHORIZED),
+             (auth_token_client, status.HTTP_405_METHOD_NOT_ALLOWED)])
+    @pytest.mark.parametrize('method', ['put'])
+    def test_recipes_pk_not_allowed(
+            self,
+            client_func,
+            status_code: str,
+            method: str,
+            create_users) -> None:
+        """Тест запрета на CRUD запросы к эндпоинту "/api/v1/recipes/{pk}/":
+            - PUT."""
+        client: APIClient = client_func()
+        response = getattr(client, method)(URL_RECIPES)
+        assert response.status_code == status_code
+        return
 
     VALID_POST_DATA: dict = {
         'ingredients': [
@@ -941,30 +1258,6 @@ class TestRecipesViewSet():
         'image': None,
         'text': 'created with post method',
         'cooking_time': 100.5}
-
-    # ToDo: fix test
-    # @pytest.mark.parametrize('data, expected_data', [
-    #     (VALID_POST_DATA, VALID_POST_DATA_EXP)])
-    # def test_recipes_post_allow_create(
-    #         self,
-    #         data: dict,
-    #         expected_data: dict,
-    #         create_users) -> None:
-    #     """Тест POST-запроса на создание нового пользователя по эндпоинту
-    #     "/api/v1/users/" для анонимного и авторизированного клиента.
-    #     Передаваемые данные являются заведомо валидными.
-    #     Используются фикстуры для наполнения тестовой БД:
-    #         - create_tags: теги;
-    #         - create_ingredients: ингредиенты."""
-    #     test_user: User = User.objects.get(id=1)
-    #     client: APIClient = auth_token_client(user=test_user)
-    #     assert Recipes.objects.all().count() == 0
-    #     response = client.post(
-    #         URL_RECIPES, json.dumps(data), content_type='application/json')
-    #     #assert response.status_code == status.HTTP_201_CREATED
-    #     #data = json.loads(response.content)
-    #     assert response.content == 1
-    #     return
 
     def test_shopping_cart_csv(self, create_recipes_ingredients_tags_users):
         """Тест GET-запроса на загрузку списка ингридиентов из пользовательской
