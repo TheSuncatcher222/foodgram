@@ -295,6 +295,10 @@ class RecipesSerializer(ModelSerializer):
         if cooking_time is None:
             raise ValidationError({
                 "cooking_time": ["Обязательное поле."]})
+        image: str = data.get('image', None)
+        if image is None:
+            raise ValidationError({
+                "image": ["Ни одного файла не было отправлено."]})
         ingredients = data.get('recipe_ingredient', None)
         if ingredients is None:
             raise ValidationError({
