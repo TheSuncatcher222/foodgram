@@ -1,11 +1,13 @@
 import csv
 
 import pandas
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.pagination import PageNumberPagination
@@ -60,6 +62,30 @@ def csv_import_ingredients(request):
         return Response({'success': 'CSV file imported successfully'})
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+
+
+@api_view(['POST'])
+def custom_user_login(request):
+    email: str = request.data.get('email')
+    password: str = request.data.get('password')
+    if not email or not password:
+        return Response(
+            {'Ошибка': 'Не указана электронная почта или пароль.'},
+            status=status.HTTP_400_BAD_REQUEST)
+    user_set = User.objects.filter(email=email)
+    if not user_set:
+        return Response(
+            {'error': 'Неверное указана электронная почта или пароль.'},
+            status=status.HTTP_401_UNAUTHORIZED)
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'Неверное имя пользователя или пароль.'},
+            status=status.HTTP_401_UNAUTHORIZED)
+    user = authenticate(request, username=user.username, password=password)
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({'auth_token': token.key}, status=status.HTTP_200_OK)
 
 
 class CustomUserViewSet(ModelViewSet):
