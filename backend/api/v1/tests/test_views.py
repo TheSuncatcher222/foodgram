@@ -151,7 +151,7 @@ class TestAuth():
         token, _ = Token.objects.get_or_create(user=test_user)
         client: APIClient = client_func()
         data: dict = {
-            'username': 'test_user_username_1',
+            'email': 'test_user_email_1@email.com',
             'password': 'test_user_password_1'}
         response = client.post(
             URL_AUTH_LOGIN,
