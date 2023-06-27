@@ -1,9 +1,9 @@
 from django.urls import include, path
-from djoser.views import TokenCreateView, TokenDestroyView, UserViewSet
+from djoser.views import TokenDestroyView, UserViewSet
 from rest_framework.routers import DefaultRouter
 
 from api.v1.views import (
-    csv_import_ingredients,
+    csv_import_ingredients, custom_user_login,
     CustomUserViewSet, IngredientsViewSet, RecipesViewSet, TagsViewSet)
 
 roots: list[dict] = [
@@ -25,7 +25,7 @@ for root in roots:
 
 urlpatterns = [
     path('auth/token/login/',
-         TokenCreateView.as_view(),
+         custom_user_login,
          name='token_create'),
     path('auth/token/logout/',
          TokenDestroyView.as_view(),
