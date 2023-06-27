@@ -1,0 +1,40 @@
+# Cache
+__pycache__/
+.egg-info/
+.pyc
+.pyo
+.swp
+.swo
+
+# Databases
+**/migrations/
+db.sqlite3
+
+# Environments
+.env
+.venv
+env/
+ENV/
+venv/
+VENV/
+env.bak/
+venv.bak/
+ENV.bak/
+VENV.bak/
+
+# IDE
+.idea
+.vscode
+
+# Media and static
+*/media/*
+*/static/*
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Secrets
+secrets.ini
+secrets.yaml
