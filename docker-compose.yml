@@ -1,0 +1,39 @@
+version: '2.17.3'
+
+volumes:
+
+  db_volume:
+  madia_volume:
+  static_volume:
+
+services:
+
+  postgres_db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - db_volume:/var/lib/postgresql/data/
+
+  backend:
+    depends_on:
+      - postgres_db
+    build: ./backend/
+    env_file: .env
+    volumes:
+      - static_volume:/backend_static
+      - madia_volume:/footgram/footgram_app/media/recipes
+
+  frontend:
+    build: ./frontend/
+    env_file: .env
+    volumes:
+      - static_volume:/static
+    command: cp -r /app/build/. /static/
+
+  nginx:
+    build: ./nginx/
+    ports:
+      - 8000:80
+    volumes:
+      - static_volume:/home/footgram/static
+      - media_volume:/home/footgram/media
