@@ -5,7 +5,7 @@ LABEL description="Foodgram backend" \
       deployer="https://github.com/Altair21817"
 RUN pip install --upgrade pip
 RUN pip install gunicorn==20.1.0
-WORKDIR /footgram
+WORKDIR /foodgram
 COPY . .
 RUN pip install -r requirements.txt
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "foodgram_backend.wsgi"]
