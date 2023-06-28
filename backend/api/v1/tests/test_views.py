@@ -88,7 +88,7 @@ def auth_token_client(user_id: int = 1) -> APIClient:
 @pytest.fixture()
 def create_ingredients() -> None:
     """Фикстура для наполнения БД заданным числом ингредиентов."""
-    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT + 1):
         create_ingredient_obj(num=i)
     return
 
@@ -97,7 +97,7 @@ def create_ingredients() -> None:
 def create_recipes_users() -> None:
     """Фикстура для наполнения БД заданным числом рецептов.
     Также создает пользователей, которые являются авторами этих рецептов."""
-    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT + 1):
         user: User = create_user_obj(num=i)
         create_recipe_obj(num=i, user=user)
     return
@@ -112,7 +112,7 @@ def create_recipes_ingredients_tags_users() -> None:
         - теги.
     Затем объекты связываются с рецептами согласно правилам полей "Recipes".
     """
-    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT + 1):
         user: User = create_user_obj(num=i)
         recipe: Recipes = create_recipe_obj(num=i, user=user)
         tag: Tags = create_tag_obj(num=i)
@@ -126,7 +126,7 @@ def create_recipes_ingredients_tags_users() -> None:
 @pytest.fixture()
 def create_tags() -> None:
     """Фикстура для наполнения БД заданным числом пользователей."""
-    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT + 1):
         create_tag_obj(num=i)
     return
 
@@ -134,7 +134,7 @@ def create_tags() -> None:
 @pytest.fixture()
 def create_users() -> None:
     """Фикстура для наполнения БД заданным числом пользователей."""
-    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
+    for i in range(1, TEST_FIXTURES_OBJ_AMOUNT + 1):
         create_user_obj(num=i)
     return
 
@@ -756,26 +756,26 @@ class TestRecipesViewSet():
         'cooking_time': 3000}
     RECIPE_VALID_EXP: dict = {
         "tags": [
-          {"id": 1,
-           "name": "test_tag_name_1",
-           "color": "#000001",
-           "slug": "test_tag_slug_1"}],
+            {"id": 1,
+             "name": "test_tag_name_1",
+             "color": "#000001",
+             "slug": "test_tag_slug_1"}],
         "author": {
-          "email": "test_user_1@email.com",
-          "id": 1,
-          "username": "test_user_username_1",
-          "first_name": "test_user_first_name_1",
-          "last_name": "test_user_last_name_1",
-          "is_subscribed": False},
+            "email": "test_user_1@email.com",
+            "id": 1,
+            "username": "test_user_username_1",
+            "first_name": "test_user_first_name_1",
+            "last_name": "test_user_last_name_1",
+            "is_subscribed": False},
         "ingredients": [
-          {"id": 1,
-           "name": "test_ingredient_name_1",
-           "measurement_unit": "батон",
-           "amount": 1000.0},
-          {"id": 2,
-           "name": "test_ingredient_name_2",
-           "measurement_unit": "батон",
-           "amount": 2000.0}],
+            {"id": 1,
+             "name": "test_ingredient_name_1",
+             "measurement_unit": "батон",
+             "amount": 1000.0},
+            {"id": 2,
+             "name": "test_ingredient_name_2",
+             "measurement_unit": "батон",
+             "amount": 2000.0}],
         "is_favorited": False,
         "is_in_shopping_cart": False,
         "name": "Patch-name",
@@ -920,7 +920,7 @@ class TestRecipesViewSet():
              'amount': 1000},
             {'id': 2,
              'amount': 2000}],
-        'name': "a"*1000,
+        'name': "a" * 1000,
         'text': 'Patch-text',
         'cooking_time': 3000}
     RECIPE_PATCH_INVALID_NAME_LONG_EXP: dict = {
@@ -985,8 +985,8 @@ class TestRecipesViewSet():
             'is_in_shopping_cart': False,
             'name': 'test_recipe_name_3',
             'image': (
-               f'http://testserver/media/'
-               f'{Recipes.objects.get(id=3).image.name}'),
+                f'http://testserver/media/'
+                f'{Recipes.objects.get(id=3).image.name}'),
             'text': 'test_recipe_text_3',
             'cooking_time': 3}
         client: APIClient = client_func()
@@ -998,9 +998,9 @@ class TestRecipesViewSet():
         return
 
     @pytest.mark.parametrize(
-            'client_func, status_code',
-            [(anon_client, status.HTTP_401_UNAUTHORIZED),
-             (auth_token_client, status.HTTP_405_METHOD_NOT_ALLOWED)])
+        'client_func, status_code',
+        [(anon_client, status.HTTP_401_UNAUTHORIZED),
+         (auth_token_client, status.HTTP_405_METHOD_NOT_ALLOWED)])
     @pytest.mark.parametrize('method', ['delete', 'patch', 'put'])
     def test_recipes_not_allowed(
             self,
@@ -1083,8 +1083,8 @@ class TestRecipesViewSet():
             'is_in_shopping_cart': False,
             'name': 'test_recipe_name_1',
             'image': (
-               f'http://testserver/media/'
-               f'{Recipes.objects.get(id=1).image.name}'),
+                f'http://testserver/media/'
+                f'{Recipes.objects.get(id=1).image.name}'),
             'text': 'test_recipe_text_1',
             'cooking_time': 1}
         client: APIClient = client_func()
@@ -1095,8 +1095,8 @@ class TestRecipesViewSet():
         return
 
     @pytest.mark.skip(reason=(
-            'Do not understand how to "upload" image yet. '
-            'With ImageField "blank=True" works fine.'))
+        'Do not understand how to "upload" image yet. '
+        'With ImageField "blank=True" works fine.'))
     @pytest.mark.parametrize('data, expected_data', [
         (RECIPE_PATCH_INVALID_TAG_NONE,
          RECIPE_PATCH_INVALID_TAG_NONE_EXP),
@@ -1162,8 +1162,8 @@ class TestRecipesViewSet():
         return
 
     @pytest.mark.skip(reason=(
-            'Do not understand how to "upload" image yet. '
-            'With ImageField "blank=True" works fine.'))
+        'Do not understand how to "upload" image yet. '
+        'With ImageField "blank=True" works fine.'))
     @pytest.mark.parametrize(
         'client_func, status_code_self, status_code_another',
         [(anon_client,
@@ -1199,9 +1199,9 @@ class TestRecipesViewSet():
         return
 
     @pytest.mark.parametrize(
-            'client_func, status_code',
-            [(anon_client, status.HTTP_401_UNAUTHORIZED),
-             (auth_token_client, status.HTTP_405_METHOD_NOT_ALLOWED)])
+        'client_func, status_code',
+        [(anon_client, status.HTTP_401_UNAUTHORIZED),
+         (auth_token_client, status.HTTP_405_METHOD_NOT_ALLOWED)])
     @pytest.mark.parametrize('method', ['put'])
     def test_recipes_pk_not_allowed(
             self,
@@ -1267,7 +1267,7 @@ class TestRecipesViewSet():
         в формате csv."""
         assert Recipes.objects.all().count() == 3
         test_user = User.objects.get(id=1)
-        for i in range(1, TEST_FIXTURES_OBJ_AMOUNT+1):
+        for i in range(1, TEST_FIXTURES_OBJ_AMOUNT + 1):
             create_shopping_cart_obj(
                 recipe=Recipes.objects.get(id=i),
                 user=test_user)

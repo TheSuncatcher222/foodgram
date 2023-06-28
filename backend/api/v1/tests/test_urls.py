@@ -110,7 +110,7 @@ class TestThrottling():
     # ToDo: понять, почему сохраняется количество посещений на сайте между
     # различными тестами.
     @pytest.mark.skip(reason=(
-            'Results are succeed, but further test will be failed with 429'))
+        'Results are succeed, but further test will be failed with 429'))
     def test_throttling(self) -> None:
         """Производит тест троттлинга при совершении большого количества
         обращений к серверу по методу GET.
@@ -118,7 +118,7 @@ class TestThrottling():
         THROTTLING_LIMIT: int = 1000
         create_ingredient_obj(num=1)
         client: APIClient = APIClient()
-        for _ in range(THROTTLING_LIMIT-1):
+        for _ in range(THROTTLING_LIMIT - 1):
             client.get('/api/v1/ingredients/')
         response = client.get('/api/v1/ingredients/')
         assert response.status_code == status.HTTP_200_OK
