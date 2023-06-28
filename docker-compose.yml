@@ -21,7 +21,7 @@ services:
     env_file: .env
     volumes:
       - static_volume:/backend_static
-      - media_volume:/footgram/footgram_app/media/recipes
+      - media_volume:/foodgram/foodgram_app/media/recipes
 
   frontend:
     build: ./frontend/
@@ -35,5 +35,5 @@ services:
     ports:
       - 8000:80
     volumes:
-      - static_volume:/home/footgram/static
-      - media_volume:/home/footgram/media
+      - static_volume:/home/foodgram/static
+      - media_volume:/home/foodgram/media
