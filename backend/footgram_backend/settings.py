@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     'djoser',
     'django_filters',
     'api.apps.ApiConfig',
-    'footgram_app.apps.FootgramAppConfig',
+    'foodgram_app.apps.FoodgramAppConfig',
 ]
 
 MIDDLEWARE = [

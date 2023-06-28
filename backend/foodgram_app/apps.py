@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class FootgramAppConfig(AppConfig):
+class FoodgramAppConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'footgram_app'
+    name = 'foodgram_app'

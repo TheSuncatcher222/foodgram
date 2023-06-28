@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from footgram_app.tests.test_models import (
+from foodgram_app.tests.test_models import (
     create_ingredient_obj, create_recipe_obj, create_tag_obj, create_user_obj)
 
 URL_UNAVALIABLE_STATUSES: list = [

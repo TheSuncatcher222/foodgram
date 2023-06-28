@@ -12,10 +12,10 @@ from rest_framework.test import APIClient
 from api.v1.serializers import (
     USER_EMAIL_MAX_LEN, USER_FIRST_NAME_MAX_LEN, USER_PASSWORD_MAX_LEN,
     USER_SECOND_NAME_MAX_LEN, USER_USERNAME_MAX_LEN)
-from footgram_app.models import (
+from foodgram_app.models import (
     RECIPES_MEDIA_ROOT,
     Ingredients, Recipes, Subscriptions, Tags)
-from footgram_app.tests.test_models import (
+from foodgram_app.tests.test_models import (
     create_ingredient_obj, create_recipe_ingredient_obj, create_recipe_obj,
     create_recipe_tag_obj, create_shopping_cart_obj, create_tag_obj,
     create_user_obj, create_user_obj_with_hash)

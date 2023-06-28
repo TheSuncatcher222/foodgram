@@ -25,7 +25,7 @@ from rest_framework.serializers import (
     BooleanField, CharField, EmailField, IntegerField, ListField,
     PrimaryKeyRelatedField, SerializerMethodField,
     ValidationError)
-from footgram_app.models import (
+from foodgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients, RecipesTags,
     ShoppingCarts, Subscriptions, Tags)
 

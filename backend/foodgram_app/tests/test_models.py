@@ -9,7 +9,7 @@ from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import CASCADE, SET_NULL
 
-from footgram_app.models import (
+from foodgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
     RecipesTags, ShoppingCarts, Subscriptions, Tags)
 

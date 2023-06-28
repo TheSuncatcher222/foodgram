@@ -2,7 +2,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from footgram_app.models import Recipes
+from foodgram_app.models import Recipes
 
 
 class IsAuthorOrAdminOrReadOnly(BasePermission):

@@ -22,7 +22,7 @@ from api.v1.serializers import (
     IngredientsSerializer, RecipesSerializer, RecipesFavoritesSerializer,
     RecipesShortSerializer, ShoppingCartsSerializer, SubscriptionsSerializer,
     TagsSerializer)
-from footgram_app.models import (
+from foodgram_app.models import (
     Ingredients, Tags, Recipes, RecipesFavorites, RecipesIngredients,
     ShoppingCarts, Subscriptions)
 

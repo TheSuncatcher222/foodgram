@@ -2,7 +2,7 @@ from django.contrib.admin import site, ModelAdmin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from footgram_app.models import (
+from foodgram_app.models import (
     Ingredients, Recipes, RecipesFavorites, RecipesIngredients,
     RecipesTags, ShoppingCarts, Subscriptions, Tags)
 

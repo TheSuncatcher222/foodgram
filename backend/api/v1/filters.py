@@ -3,7 +3,7 @@ from django_filters.rest_framework import (
     BooleanFilter, CharFilter)
 from rest_framework.exceptions import MethodNotAllowed
 
-from footgram_app.models import Recipes, RecipesFavorites, ShoppingCarts, User
+from foodgram_app.models import Recipes, RecipesFavorites, ShoppingCarts, User
 
 
 class TagsFilter(Filter):
