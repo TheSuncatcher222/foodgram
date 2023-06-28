@@ -192,6 +192,7 @@ class IngredientsViewSet(ModelViewSet):
                                  с ID=pk при GET запросе.
     """
     http_method_names = ('get', 'list')
+    pagination_class = None
     serializer_class = IngredientsSerializer
     queryset = Ingredients.objects.all()
 
@@ -326,5 +327,6 @@ class TagsViewSet(ModelViewSet):
                          при GET запросе.
     """
     http_method_names = ('get', 'list')
+    pagination_class = None
     serializer_class = TagsSerializer
     queryset = Tags.objects.all()
