@@ -121,8 +121,8 @@ class CustomUserViewSet(ModelViewSet):
             - устанавливает сортировку объектов по полю "id"
               (используется встроенная модель "User", в которой явным образом
               не задан мета-параметр "ordering")."""
-        return User.objects.all(
-                ).prefetch_related('recipe_author').order_by('id')
+        return User.objects.all().prefetch_related(
+            'recipe_author').order_by('id')
 
     @action(detail=False,
             methods=('get',),
@@ -163,9 +163,9 @@ class CustomUserViewSet(ModelViewSet):
         subscriber: User = request.user
         subscription_to: User = get_object_or_404(User, id=pk)
         serializer = SubscriptionsSerializer(
-                data={'subscriber': subscriber.id,
-                      'subscription_to': pk},
-                context={'request': request})
+            data={'subscriber': subscriber.id,
+                  'subscription_to': pk},
+            context={'request': request})
         serializer.is_valid(raise_exception=True)
         if request.method == 'DELETE':
             Subscriptions.objects.get(
@@ -218,8 +218,8 @@ class RecipesViewSet(ModelViewSet):
     serializer_class = RecipesSerializer
 
     def get_queryset(self):
-        return Recipes.objects.all(
-            ).select_related('author').prefetch_related('ingredients', 'tags')
+        return Recipes.objects.all().select_related(
+            'author').prefetch_related('ingredients', 'tags')
 
     @action(detail=False,
             methods=('get',),

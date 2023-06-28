@@ -7,18 +7,18 @@ from api.v1.views import (
     CustomUserViewSet, IngredientsViewSet, RecipesViewSet, TagsViewSet)
 
 roots: list[dict] = [
-     {'path': r'ingredients',
-      'viewset': IngredientsViewSet,
-      'basename': 'ingredients'},
-     {'path': r'recipes',
-      'viewset': RecipesViewSet,
-      'basename': 'recipes'},
-     {'path': r'tags',
-      'viewset': TagsViewSet,
-      'basename': 'tags'},
-     {'path': r'users',
-      'viewset': CustomUserViewSet,
-      'basename': 'users'}]
+    {'path': r'ingredients',
+     'viewset': IngredientsViewSet,
+     'basename': 'ingredients'},
+    {'path': r'recipes',
+     'viewset': RecipesViewSet,
+     'basename': 'recipes'},
+    {'path': r'tags',
+     'viewset': TagsViewSet,
+     'basename': 'tags'},
+    {'path': r'users',
+     'viewset': CustomUserViewSet,
+     'basename': 'users'}]
 router = DefaultRouter()
 for root in roots:
     router.register(root['path'], root['viewset'], basename=root['basename'])
