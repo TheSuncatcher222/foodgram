@@ -3,7 +3,7 @@ version: '2.17.3'
 volumes:
 
   db_volume:
-  madia_volume:
+  media_volume:
   static_volume:
 
 services:
@@ -21,7 +21,7 @@ services:
     env_file: .env
     volumes:
       - static_volume:/backend_static
-      - madia_volume:/footgram/footgram_app/media/recipes
+      - media_volume:/footgram/footgram_app/media/recipes
 
   frontend:
     build: ./frontend/
