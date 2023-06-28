@@ -103,6 +103,10 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'foodgram_app/collected_static'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'foodgram_app/media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
