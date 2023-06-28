@@ -13,8 +13,10 @@
     - USER_FORBIDDEN_USERNAMES - список запрещенных значений поля "username";
     - USERNAME_PATTERN - паттерн допустимых символов поля "username".
 """
+import base64
 
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
 from re import sub
@@ -22,7 +24,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.serializers import (
     ModelSerializer,
-    BooleanField, CharField, EmailField, IntegerField, ListField,
+    BooleanField, CharField, EmailField, ImageField, IntegerField, ListField,
     PrimaryKeyRelatedField, SerializerMethodField,
     ValidationError)
 from foodgram_app.models import (
@@ -38,6 +40,23 @@ USER_USERNAME_MAX_LEN: int = 150
 USER_FORBIDDEN_USERNAMES: list[str] = ['me']
 
 USERNAME_PATTERN: str = r'^[\w.@+-]+$'
+
+
+class Base64ImageField(ImageField):
+    """Сериализатор изображений в формате base64."""
+    def to_internal_value(self, data):
+        """Декодирует данные, если было прислано изображение в формате
+        base64.
+        Структура имеет следующий вид:
+            - "data:[<MIME-type>][;base64],<data>";
+            - "data:image/png;base64,iVBORw0KGg..."."""
+        if isinstance(data, str) and data.startswith('data:image'):
+            data_format, base64_image = data.split(';base64,')
+            image_extension: str = data_format.split('/')[-1]
+            data: ContentFile = ContentFile(
+                base64.b64decode(base64_image),
+                name='image.' + image_extension)
+        return super().to_internal_value(data)
 
 
 class CustomUserSerializer(UserSerializer):
@@ -239,6 +258,7 @@ class RecipesSerializer(ModelSerializer):
     author = CustomUserSerializer(read_only=True)
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
+    image = Base64ImageField()
 
     class Meta:
         model = Recipes
@@ -286,7 +306,7 @@ class RecipesSerializer(ModelSerializer):
             return False
         return ShoppingCarts.objects.filter(user=user, recipe=obj).exists()
 
-    def _validate_ingredients(ingredients: list) -> None:
+    def _validate_ingredients(self, ingredients: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         ингредиентов из списка присланных."""
         if ingredients is None:
@@ -309,7 +329,7 @@ class RecipesSerializer(ModelSerializer):
                         'Укажите количество ингредиента.']}})
         return
 
-    def _validate_cooking_time(cooking_time: int) -> None:
+    def _validate_cooking_time(self, cooking_time: int) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         времени приготовления."""
         if cooking_time is None:
@@ -317,7 +337,7 @@ class RecipesSerializer(ModelSerializer):
                 "cooking_time": ["Обязательное поле."]})
         return
 
-    def _validate_image(image: str) -> None:
+    def _validate_image(self, image: str) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         изображения рецепта."""
         if image is None:
@@ -325,7 +345,7 @@ class RecipesSerializer(ModelSerializer):
                 "image": ["Ни одного файла не было отправлено."]})
         return
 
-    def _validate_name(name: str) -> None:
+    def _validate_name(self, name: str) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         названия рецепта."""
         if name is None:
@@ -333,7 +353,7 @@ class RecipesSerializer(ModelSerializer):
                 "name": ["Обязательное поле."]})
         return
 
-    def _validate_tags(tags: list) -> None:
+    def _validate_tags(self, tags: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         тегов из списка присланных."""
         if tags is None:
