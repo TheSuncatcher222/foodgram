@@ -20,7 +20,7 @@ services:
     build: ./backend/
     env_file: .env
     volumes:
-      - media_volume:/foodgram/foodgram_app/media/recipes
+      - media_volume:/foodgram/foodgram_app/media
       - static_volume:/foodgram/foodgram_app/collected_static
 
   frontend:
