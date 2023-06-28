@@ -6,7 +6,7 @@ SECRET_KEY = 'django-insecure-%4#e*hws8gz3&7xz^@6*dm@z105+%flb@xk7d#*05v*5*$jj&2
 
 DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', 'foodgram.ddns.net', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
