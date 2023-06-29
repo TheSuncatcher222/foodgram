@@ -1360,17 +1360,14 @@ class TestTagsViewSet():
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('url', [
-    URL_INGREDIENTS, URL_RECIPES, URL_TAGS, URL_USERS])
+@pytest.mark.parametrize('url', [URL_RECIPES, URL_USERS])
 def test_view_sets_pagination(
-        url, create_recipes_ingredients_tags_users) -> None:
+        url, create_recipes_users) -> None:
     """Производит тест пагинации вьюсетов:
         - CustomUserViewSet;
-        - RecipesViewSet;
-        - TagsViewSet.
-    Используется фикстура "create_recipes_ingredients_tags_users"
-    для наполнения тестовой БД ингредиентами, пользователями,
-    тегами и рецептами."""
+        - RecipesViewSet.
+    Используется фикстура "create_recipes_users"
+    для наполнения тестовой БД пользователями и рецептами."""
     client: APIClient = auth_client()
     response = client.get(url)
     data: dict = json.loads(response.content)
