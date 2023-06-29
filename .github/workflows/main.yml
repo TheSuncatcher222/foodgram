@@ -101,7 +101,7 @@ jobs:
             sudo docker compose up -d
             sudo docker compose exec backend python manage.py makemigrations foodgram_app
             sudo docker compose exec backend python manage.py migrate
-            sudo docker compose exec backend python manage.py collectstatic
+            yes | sudo docker compose exec backend python manage.py collectstatic
             sudo systemctl restart nginx
 
   send_message_telegram:
