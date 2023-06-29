@@ -286,7 +286,7 @@ class RecipesSerializer(ModelSerializer):
         от типа HTTP-запроса."""
         fields = super().get_fields()
         request = self.context.get('request', None)
-        if not request is None and request.method in ('PATCH', 'POST', 'PUT'):
+        if request is not None and request.method in ('PATCH', 'POST', 'PUT'):
             # Todo: попробовать использовать метод get или другие проверки
             fields['ingredients'] = RecipesIngredientsCreateSerializer(
                 many=True,
