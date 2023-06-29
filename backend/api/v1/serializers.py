@@ -104,7 +104,7 @@ class CustomUserSerializer(UserSerializer):
         return not user.is_anonymous and Subscriptions.objects.filter(
                 subscriber=user,
                 subscription_to=obj).select_related(
-                    'subscriber','subscription_to').exists()
+                    'subscriber', 'subscription_to').exists()
 
     def validate_email(self, value):
         """Производит валидацию поля 'email':
@@ -218,6 +218,7 @@ class RecipesIngredientsSerializer(ModelSerializer):
             'measurement_unit',
             'amount')
 
+    # ToDo: выглядит громоздко, исправить на read_only_fields, протестировать
     def get_fields(self):
         """Переопределяет поля сериализатора: устанавливает для всех
         параметр "read_only"."""
