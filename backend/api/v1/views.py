@@ -37,16 +37,16 @@ def csv_import_ingredients(request):
     if not request.user.is_staff:
         return Response(
             {'Ошибка': 'Доступ запрещен.'},
-            status=403)
+            status=status.HTTP_403_FORBIDDEN)
     if request.META.get('CONTENT_TYPE') != 'text/csv':
         return Response(
             {'Ошибка': 'Неправильный тип содержимого. Ожидается text/csv.'},
-            status=400)
+            status=status.HTTP_400_BAD_REQUEST)
     file = request.FILES.get('file')
     if not file:
         return Response(
             {'Ошибка': 'К запросу не приложен файл.'},
-            status=400)
+            status=status.HTTP_400_BAD_REQUEST)
     try:
         """Согласно документации, присылаемые файлы не имеют заголовка, и его
         нужно указать вручную при чтении."""
@@ -61,7 +61,7 @@ def csv_import_ingredients(request):
         Ingredients.objects.bulk_create(objects)
         return Response({'success': 'CSV file imported successfully'})
     except Exception as e:
-        return Response({'error': str(e)}, status=400)
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
