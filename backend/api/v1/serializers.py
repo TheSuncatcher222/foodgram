@@ -285,7 +285,9 @@ class RecipesSerializer(ModelSerializer):
         """Определяет сериализатор для поля "tags" в зависимости
         от типа HTTP-запроса."""
         fields = super().get_fields()
-        if self.context['request'].method in ('PATCH', 'POST', 'PUT'):
+        request = self.context.get('request', None)
+        if not request is None and request.method in ('PATCH', 'POST', 'PUT'):
+            # Todo: попробовать использовать метод get или другие проверки
             fields['ingredients'] = RecipesIngredientsCreateSerializer(
                 many=True,
                 source='recipe_ingredient')
