@@ -38,6 +38,7 @@ jobs:
         run: python -m flake8 backend/
       - name: Run Django tests
         env:
+          SECRET_KEY: django-insecure-%4#w*hww8gz
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
           POSTGRES_DB: test_db
