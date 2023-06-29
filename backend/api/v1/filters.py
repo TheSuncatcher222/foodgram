@@ -19,13 +19,14 @@ class IngredientsFilter(BaseFilterBackend):
     """Создает фильтр для "IngredientsViewSet".
     Позволяет осуществлять фильтрацию по полю name: отображает только те
     ингредиенты, которые начинаются с объявленной пользователем записи
-    в URL запросе в формате ".../ingredients/?name=...".
+    в URL запросе в формате ".../ingredients/?name=..." вне зависимости
+    от регистра.
     """
 
     def filter_queryset(self, request, queryset, view):
         name = request.query_params.get('name')
         if name:
-            queryset = queryset.filter(name__istartswith=name)
+            queryset = queryset.filter(name__icontains=name)
         return queryset
 
 
@@ -62,11 +63,17 @@ class RecipesFilter(FilterSet):
     author = CharFilter(field_name='author__username')
     is_favorited = BooleanFilter(method='filter_is_favorited')
     is_in_shopping_cart = BooleanFilter(method='filter_is_in_shopping_cart')
-    tags = TagsFilter(field_name='tags__name')
+    tags = CharFilter(method='filter_by_tags')
 
     class Meta:
         model = Recipes
         fields = ('author', 'is_favorited', 'tags')
+
+    def filter_by_tags(self, queryset, name, value):
+        print(value)
+        tags = value.split('_')
+        print(tags)
+        return queryset.filter(tags__slug__in=tags)
 
     def _filter_recipes(self, queryset, value, model):
         """Вспомогательная функция. Фильтрует объекты модели "Recipes" согласно
