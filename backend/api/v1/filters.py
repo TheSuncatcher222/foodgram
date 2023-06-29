@@ -49,7 +49,7 @@ class RecipesFilter(FilterSet):
 
     class Meta:
         model = Recipes
-        fields = ['author', 'is_favorite', 'tags']
+        fields = ('author', 'is_favorite', 'tags')
 
     def filter_is_favorite(self, queryset, name, value):
         """Переопределяет queryset: фильтрует только те рецепты, которые
