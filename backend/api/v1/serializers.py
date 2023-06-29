@@ -243,7 +243,11 @@ class RecipesIngredientsCreateSerializer(ModelSerializer):
 
     class Meta():
         model = RecipesIngredients
-        fields = ('id', 'name', 'measurement_unit', 'amount')
+        fields = (
+            'id',
+            'name',
+            'measurement_unit',
+            'amount')
 
     def get_name(self, obj):
         """Получает значение поля "name" модели "ingredients"."""
