@@ -465,6 +465,16 @@ class RecipesSerializer(ModelSerializer):
                 'color': tag.color,
                 'slug': tag.slug})
         representation['tags'] = tags_data
+        ingredients_data: list = []
+        recipe_ingredients = instance.recipe_ingredient.all()
+        for recipe_ingredient in recipe_ingredients:
+            ingredient = recipe_ingredient.ingredient
+            ingredients_data.append({
+                'id': ingredient.id,
+                'name': ingredient.name,
+                'measurement_unit': ingredient.measurement_unit,
+                'amount': recipe_ingredient.amount})
+        representation['ingredients'] = ingredients_data
         return representation
 
 
