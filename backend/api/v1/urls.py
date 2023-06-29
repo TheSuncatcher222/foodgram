@@ -23,13 +23,16 @@ router = DefaultRouter()
 for root in roots:
     router.register(root['path'], root['viewset'], basename=root['basename'])
 
-urlpatterns = [
-    path('auth/token/login/',
+urlpatterns_auth_token = [
+    path('login/',
          custom_user_login,
          name='token_create'),
-    path('auth/token/logout/',
+    path('logout/',
          TokenDestroyView.as_view(),
-         name='token_destroy'),
+         name='token_destroy'),]
+
+urlpatterns = [
+    path('auth/token/', include(urlpatterns_auth_token)),
     path('users/set_password/',
          UserViewSet.as_view({'post': 'set_password'}),
          name='set_password'),
