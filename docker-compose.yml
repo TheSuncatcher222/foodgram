@@ -17,20 +17,20 @@ services:
   backend:
     depends_on:
       - postgres_db
-    build: ./backend/
+    image: altair21817/foodgram_backend
     env_file: .env
     volumes:
       - media_volume:/foodgram/foodgram_app/media
       - static_volume:/foodgram/foodgram_app/collected_static
 
   frontend:
-    build: ./frontend/
+    image: altair21817/foodgram_frontend
     volumes:
       - static_volume:/static
     command: cp -r /app/build/. /static/
 
   nginx:
-    build: ./nginx/
+    image: altair21817/foodgram_nginx
     ports:
       - 8000:80
     volumes:
