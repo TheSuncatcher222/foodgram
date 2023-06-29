@@ -411,12 +411,14 @@ class RecipesSerializer(ModelSerializer):
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
         current_recipe: Recipes = Recipes.objects.create(
             author=user, **validated_data)
+        recipe_ingredients: list = []
         for ingredient in ingredients_data:
             current_amount: float = ingredient['amount']
-            RecipesIngredients.objects.create(
+            recipe_ingredients.append(RecipesIngredients(
                 amount=current_amount,
                 ingredient=ingredient['id'],
-                recipe=current_recipe)
+                recipe=current_recipe))
+        RecipesIngredients.objects.bulk_create(recipe_ingredients)
         tags_data = self.context['request'].data.get('tags')
         current_recipe.tags.set(tags_data)
         return current_recipe
