@@ -43,17 +43,18 @@ class RecipesFilter(FilterSet):
                 выбранный(е) тег(и) (через slug).
     """
     author = CharFilter(field_name='author__username')
-    is_favorite = BooleanFilter(method='filter_is_favorite')
+    is_favorited = BooleanFilter(method='filter_is_favorited')
     is_in_shopping_cart = BooleanFilter(method='filter_is_in_shopping_cart')
     tags = TagsFilter(field_name='tags__name')
 
     class Meta:
         model = Recipes
-        fields = ('author', 'is_favorite', 'tags')
+        fields = ('author', 'is_favorited', 'tags')
 
     def _filter_recipes(self, queryset, value, model):
         """Вспомогательная функция. Фильтрует объекты модели "Recipes" согласно
         получаемому списку ID."""
+        print(value)
         if not value:
             return queryset
         user: User = self.request.user
@@ -63,11 +64,11 @@ class RecipesFilter(FilterSet):
             user=user).values_list('recipe_id', flat=True)
         return Recipes.objects.filter(id__in=recipe_ids)
 
-    def filter_is_favorite(self, queryset, name, value):
+    def filter_is_favorited(self, queryset, name, value):
         """Переопределяет queryset: фильтрует только те рецепты, которые
         указаны в RecipesFavorites в паре с текущим пользователем.
         Value - это переданное пользователем в запросе значение
-        исследуемого поля - "is_favorite"."""
+        исследуемого поля - "is_favorited"."""
         return self._filter_recipes(
             queryset=queryset,
             value=value,

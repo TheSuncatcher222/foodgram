@@ -213,7 +213,6 @@ class RecipesViewSet(ModelViewSet):
     """
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipesFilter
-    filterset_fields = ('author', 'name')
     http_method_names = ('delete', 'get', 'list', 'patch', 'post')
     permission_classes = (IsAuthorOrAdminOrReadOnly,)
     serializer_class = RecipesSerializer
