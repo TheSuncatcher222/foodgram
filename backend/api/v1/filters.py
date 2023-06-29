@@ -10,13 +10,29 @@ from django_filters.rest_framework import (
     Filter, FilterSet,
     BooleanFilter, CharFilter)
 from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.filters import BaseFilterBackend
 
 from foodgram_app.models import Recipes, RecipesFavorites, ShoppingCarts, User
 
 
+class IngredientsFilter(BaseFilterBackend):
+    """Создает фильтр для "IngredientsViewSet".
+    Позволяет осуществлять фильтрацию по полю name: отображает только те
+    ингредиенты, которые начинаются с объявленной пользователем записи
+    в URL запросе в формате ".../ingredients/?name=...".
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        name = request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__istartswith=name)
+        return queryset
+
+
 class TagsFilter(Filter):
     """Вспомогательный фильтр для RecipesFilter, позволяющий вести фильтрацию
-    по Many-To-Many полю "tags" модели "Recipes"."""
+    по Many-To-Many полю "tags" модели "Recipes".
+    """
 
     def filter(self, queryset, value):
         """Определяет список тегов, которые удовлетворяют введенному(ым)
@@ -42,6 +58,7 @@ class RecipesFilter(FilterSet):
         - tags: отображает только те рецепты, для которых определен(ы)
                 выбранный(е) тег(и) (через slug).
     """
+
     author = CharFilter(field_name='author__username')
     is_favorited = BooleanFilter(method='filter_is_favorited')
     is_in_shopping_cart = BooleanFilter(method='filter_is_in_shopping_cart')
@@ -53,7 +70,8 @@ class RecipesFilter(FilterSet):
 
     def _filter_recipes(self, queryset, value, model):
         """Вспомогательная функция. Фильтрует объекты модели "Recipes" согласно
-        получаемому списку ID."""
+        получаемому списку ID.
+        """
         print(value)
         if not value:
             return queryset
@@ -68,7 +86,8 @@ class RecipesFilter(FilterSet):
         """Переопределяет queryset: фильтрует только те рецепты, которые
         указаны в RecipesFavorites в паре с текущим пользователем.
         Value - это переданное пользователем в запросе значение
-        исследуемого поля - "is_favorited"."""
+        исследуемого поля - "is_favorited".
+        """
         return self._filter_recipes(
             queryset=queryset,
             value=value,
@@ -78,7 +97,8 @@ class RecipesFilter(FilterSet):
         """Переопределяет queryset: фильтрует только те рецепты, которые
         указаны в ShoppingCarts в паре с текущим пользователем.
         Value - это переданное пользователем в запросе значение
-        исследуемого поля - "is_in_shopping_cart"."""
+        исследуемого поля - "is_in_shopping_cart".
+        """
         return self._filter_recipes(
             queryset=queryset,
             value=value,

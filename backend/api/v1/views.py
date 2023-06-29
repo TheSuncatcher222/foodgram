@@ -15,7 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from api.v1.filters import RecipesFilter
+from api.v1.filters import IngredientsFilter, RecipesFilter
 from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
     CustomUserSerializer, CustomUserSubscriptionsSerializer,
@@ -191,6 +191,8 @@ class IngredientsViewSet(ModelViewSet):
     2) ".../ingredients/{pk}/" - предоставляет информацию об ингредиенте
                                  с ID=pk при GET запросе.
     """
+    filter_backends = (IngredientsFilter,)
+    filterset_fields = ('name',)
     http_method_names = ('get', 'list')
     pagination_class = None
     serializer_class = IngredientsSerializer
