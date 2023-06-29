@@ -212,7 +212,11 @@ class RecipesIngredientsSerializer(ModelSerializer):
 
     class Meta:
         model = RecipesIngredients
-        fields = ('id', 'name', 'measurement_unit', 'amount')
+        fields = (
+            'id',
+            'name',
+            'measurement_unit',
+            'amount')
 
     def get_fields(self):
         """Переопределяет поля сериализатора: устанавливает для всех
