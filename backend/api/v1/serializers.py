@@ -315,12 +315,19 @@ class RecipesSerializer(ModelSerializer):
             return False
         return ShoppingCarts.objects.filter(user=user, recipe=obj).exists()
 
+    def _validate_field_required(self, name: str, value: any) -> None:
+        """Вспомогательная функция для "validate": производит проверку поля
+        с именем "name" и значением "value": если значение будет None,
+        вызовет ошибку валидации и укажет, что поле "name" обязательное."""
+        if value is None:
+            raise ValidationError({
+                f"{name}": ["Обязательное поле."]})
+        return
+
     def _validate_ingredients(self, ingredients: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         ингредиентов из списка присланных."""
-        if ingredients is None:
-            raise ValidationError({
-                "ingredients": ["Обязательное поле."]})
+        self._validate_field_required(name='ingredients', value=ingredients)
         if len(ingredients) == 0:
             raise ValidationError({
                 "ingredients": ["Поле не может быть пустым."]})
@@ -338,36 +345,18 @@ class RecipesSerializer(ModelSerializer):
                         'Укажите количество ингредиента.']}})
         return
 
-    def _validate_cooking_time(self, cooking_time: int) -> None:
-        """Вспомогательная функция для "validate": производит валидацию
-        времени приготовления."""
-        if cooking_time is None:
-            raise ValidationError({
-                "cooking_time": ["Обязательное поле."]})
-        return
-
     def _validate_image(self, image: str) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         изображения рецепта."""
         if image is None:
             raise ValidationError({
-                "image": ["Ни одного файла не было отправлено."]})
-        return
-
-    def _validate_name(self, name: str) -> None:
-        """Вспомогательная функция для "validate": производит валидацию
-        названия рецепта."""
-        if name is None:
-            raise ValidationError({
-                "name": ["Обязательное поле."]})
+                "image": ["Файл не был прикреплен."]})
         return
 
     def _validate_tags(self, tags: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         тегов из списка присланных."""
-        if tags is None:
-            raise ValidationError({
-                "tags": ["Обязательное поле."]})
+        self._validate_field_required(name='tags', value=tags)
         if not isinstance(tags, list):
             raise ValidationError({
                 "tags": ["Укажите ID в формате списка."]})
@@ -394,15 +383,17 @@ class RecipesSerializer(ModelSerializer):
         id (ListField), невозможно осуществить валидацию при помощи
         сериализатора, требуется ручная проверка входящих данных."""
         cooking_time: str = data.get('cooking_time', None)
-        self._validate_cooking_time(cooking_time=cooking_time)
+        self._validate_field_required(name='cooking_time', value=cooking_time)
         image: str = data.get('image', None)
         self._validate_image(image=image)
         ingredients = data.get('recipe_ingredient', None)
         self._validate_ingredients(ingredients=ingredients)
         name: str = data.get('name', None)
-        self._validate_name(name=name)
+        self._validate_field_required(name='name', value=name)
         tags: list[int] = self.context['request'].data.get('tags', None)
         self._validate_tags(tags=tags)
+        text: str = data.get('text', None)
+        self._validate_field_required(name='text', value=text)
         return data
 
     # ToDo: create и update очень похожи, можно вынести одинаковый код
