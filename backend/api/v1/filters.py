@@ -51,32 +51,34 @@ class RecipesFilter(FilterSet):
         model = Recipes
         fields = ('author', 'is_favorite', 'tags')
 
-    def filter_is_favorite(self, queryset, name, value):
-        """Переопределяет queryset: фильтрует только те рецепты, которые
-        указаны в RecipesFavorites в паре с текущим пользователем."""
-
-        """Value - это переданное пользователем в запросе значение
-        исследуемого поля - "is_favorite"."""
+    def _filter_recipes(self, queryset, value, model):
+        """Вспомогательная функция. Фильтрует объекты модели "Recipes" согласно
+        получаемому списку ID."""
         if not value:
             return queryset
         user: User = self.request.user
         if not user.is_authenticated:
             raise MethodNotAllowed
-        recipe_ids: list = RecipesFavorites.objects.filter(
+        recipe_ids: list = model.objects.filter(
             user=user).values_list('recipe_id', flat=True)
         return Recipes.objects.filter(id__in=recipe_ids)
+
+    def filter_is_favorite(self, queryset, name, value):
+        """Переопределяет queryset: фильтрует только те рецепты, которые
+        указаны в RecipesFavorites в паре с текущим пользователем.
+        Value - это переданное пользователем в запросе значение
+        исследуемого поля - "is_favorite"."""
+        return self._filter_recipes(
+            queryset=queryset,
+            value=value,
+            model=RecipesFavorites)
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         """Переопределяет queryset: фильтрует только те рецепты, которые
-        указаны в ShoppingCarts в паре с текущим пользователем."""
-
-        """Value - это переданное пользователем в запросе значение
+        указаны в ShoppingCarts в паре с текущим пользователем.
+        Value - это переданное пользователем в запросе значение
         исследуемого поля - "is_in_shopping_cart"."""
-        if not value:
-            return queryset
-        user: User = self.request.user
-        if not user.is_authenticated:
-            raise MethodNotAllowed
-        recipe_ids: list = ShoppingCarts.objects.filter(
-            user=user).values_list('recipe_id', flat=True)
-        return Recipes.objects.filter(id__in=recipe_ids)
+        return self._filter_recipes(
+            queryset=queryset,
+            value=value,
+            model=ShoppingCarts)
