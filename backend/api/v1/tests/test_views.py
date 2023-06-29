@@ -1305,16 +1305,12 @@ class TestTagsViewSet():
         """Тест GET-запроса списка тегов по эндпоинту "/api/v1/tags/"
         для анонимного и авторизированного клиента.
         Используется фикстура "create_tags" для наполнения тестовой
-        БД тегами.
-        В классе используется пагинация. В рамках теста производится анализ
-        содержимого "results" для первого элемента. Тест непосредственно
-        пагинации производится в функции "test_view_sets_pagination"."""
+        БД тегами."""
         client = client_func()
         response = client.get(URL_TAGS)
         assert response.status_code == status.HTTP_200_OK
         data: dict = json.loads(response.content)
-        results_pagination: dict = data['results']
-        assert results_pagination[0] == self.FIRST_TAG_EXP
+        assert data[0] == self.FIRST_TAG_EXP
         return
 
     @pytest.mark.parametrize('client_func', [anon_client, auth_client])
