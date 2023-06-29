@@ -405,6 +405,7 @@ class RecipesSerializer(ModelSerializer):
         self._validate_tags(tags=tags)
         return data
 
+    # ToDo: create и update очень похожи, можно вынести одинаковый код
     def create(self, validated_data):
         """Переопределяет метод сохранения данных (POST)."""
         user: User = self.context['request'].user
@@ -432,12 +433,14 @@ class RecipesSerializer(ModelSerializer):
         instance.text = validated_data.get('text', instance.text)
         RecipesIngredients.objects.filter(recipe=instance).delete()
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
+        recipe_ingredients: list = []
         for ingredient in ingredients_data:
             current_amount: float = ingredient['amount']
-            RecipesIngredients.objects.create(
+            recipe_ingredients.append(RecipesIngredients(
                 amount=current_amount,
                 ingredient=ingredient['id'],
-                recipe=instance)
+                recipe=instance))
+        RecipesIngredients.objects.bulk_create(recipe_ingredients)
         tags_data = self.context['request'].data.get('tags')
         RecipesTags.objects.filter(recipe=instance).delete()
         instance.tags.set(tags_data)
