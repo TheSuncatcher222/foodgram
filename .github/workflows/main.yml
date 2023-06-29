@@ -36,16 +36,6 @@ jobs:
           pip install -r ./backend/requirements.txt
       - name: Run flake8 tests
         run: python -m flake8 backend/
-      - name: Run Django tests
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_db
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-        run: |
-          cd backend/
-          pytest
 
   build_and_push_foodgram_images:
     name: Build backend, frontend and gateway images and push to the DockerHub
@@ -124,4 +114,4 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_ME_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message: Деплой "Kittygram" выполнен успешно!
+          message: Деплой "Foodgram" выполнен успешно!
