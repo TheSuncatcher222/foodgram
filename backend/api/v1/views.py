@@ -121,7 +121,7 @@ class CustomUserViewSet(ModelViewSet):
             - устанавливает сортировку объектов по полю "id"
               (используется встроенная модель "User", в которой явным образом
               не задан мета-параметр "ordering")."""
-        return User.objects.all().prefetch_related(
+        return User.objects.prefetch_related(
             'recipe_author').order_by('id')
 
     @action(detail=False,
