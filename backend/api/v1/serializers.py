@@ -102,9 +102,9 @@ class CustomUserSerializer(UserSerializer):
         имеет, или пользователь не авторизован."""
         user: User = self.context['request'].user
         return not user.is_anonymous and Subscriptions.objects.filter(
-                subscriber=user,
-                subscription_to=obj).select_related(
-                    'subscriber', 'subscription_to').exists()
+            subscriber=user,
+            subscription_to=obj).select_related(
+                'subscriber', 'subscription_to').exists()
 
     def validate_email(self, value):
         """Производит валидацию поля 'email':
