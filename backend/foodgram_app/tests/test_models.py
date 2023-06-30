@@ -220,7 +220,8 @@ class TestIngredientsModel():
                 measurement_unit=None)
         assert str(err.value) == (
             # "{'name': ['Это поле не может иметь значение NULL.'], "
-            # "'measurement_unit': ['Это поле не может иметь значение NULL.']}")
+            # "'measurement_unit':
+            # ['Это поле не может иметь значение NULL.']}")
             "{'measurement_unit': ['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
         return
@@ -339,9 +340,9 @@ class TestTagsModel():
         with pytest.raises(ValidationError) as err:
             Tags.objects.create(
                 color=None,
-                # 'NoneType' object has no attribute 'lower' 
+                # 'NoneType' object has no attribute 'lower'
                 # name=None,
-                name = 'test_name',
+                name='test_name',
                 slug=None)
         assert str(err.value) == (
             "{'color': ['Это поле не может иметь значение NULL.'], "
