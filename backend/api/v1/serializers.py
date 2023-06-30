@@ -161,7 +161,7 @@ class CustomUserSerializer(UserSerializer):
 class CustomUserLoginSerializer(Serializer):
     """Создает сериализатор для валидации аунтификационных данных на
     URL ".../auth/token/login/"."""
-    
+
     email = EmailField()
     password = CharField()
 
@@ -322,7 +322,7 @@ class RecipesIngredientsCreateSerializer(ModelSerializer):
     def get_measurement_unit(self, obj):
         """Получает значение поля "measurement_unit" модели "ingredients"."""
         return obj.ingredient.measurement_unit
-    
+
     def get_name(self, obj):
         """Получает значение поля "name" модели "ingredients"."""
         return obj.ingredient.name
