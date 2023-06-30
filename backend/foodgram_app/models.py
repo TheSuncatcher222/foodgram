@@ -148,6 +148,11 @@ class Tags(Model):
         db_index=True,
         max_length=TAGS_NAME_MAX_LEN,
         unique=True,
+        validators=[RegexValidator(
+            regex=r'^[А-ЯЁ]{1}[а-яё]*$',
+            message=(
+                'Введите корректное название тега '
+                '(одно слово с заглавной буквы!'))],
         verbose_name='Название')
     slug = SlugField(
         max_length=TAGS_SLUG_MAX_LEN,
