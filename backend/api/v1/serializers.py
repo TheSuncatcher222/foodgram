@@ -117,7 +117,6 @@ class CustomUserSerializer(UserSerializer):
         Возвращает True, если пользователь имеет подписку, False - если не
         имеет, или пользователь не авторизован."""
         request = self.context.get('request', None)
-        print(request)
         if not request:
             raise APICustomException()
         user: User = request.user
@@ -209,6 +208,8 @@ class CustomUserSubscriptionsSerializer(ModelSerializer):
     def to_representation(self, instance):
         """Получает из запроса значение """
         representation = super().to_representation(instance)
+        if representation.get('recipes', None) is None:
+            raise APICustomException
         recipes_limit: None = None
         request = self.context.get('request', None)
         if request is not None:
@@ -270,9 +271,8 @@ class RecipesIngredientsCreateSerializer(ModelSerializer):
         - "PUT"."""
 
     id = PrimaryKeyRelatedField(queryset=Ingredients.objects.all())
-    # ToDo: переопределить поля (2) в методе to_representation()
-    name = SerializerMethodField(read_only=True)
     measurement_unit = SerializerMethodField(read_only=True)
+    name = SerializerMethodField(read_only=True)
 
     class Meta():
         model = RecipesIngredients
@@ -282,13 +282,13 @@ class RecipesIngredientsCreateSerializer(ModelSerializer):
             'measurement_unit',
             'amount')
 
-    def get_name(self, obj):
-        """Получает значение поля "name" модели "ingredients"."""
-        return obj.ingredient.name
-
     def get_measurement_unit(self, obj):
         """Получает значение поля "measurement_unit" модели "ingredients"."""
         return obj.ingredient.measurement_unit
+    
+    def get_name(self, obj):
+        """Получает значение поля "name" модели "ingredients"."""
+        return obj.ingredient.name
 
 
 class RecipesSerializer(ModelSerializer):
@@ -313,13 +313,33 @@ class RecipesSerializer(ModelSerializer):
             'text',
             'cooking_time')
 
+    # ToDo: create и update очень похожи, можно вынести одинаковый код
+    def create(self, validated_data):
+        """Переопределяет метод сохранения данных (POST)."""
+        user: User = self.context['request'].user
+        ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
+        current_recipe: Recipes = Recipes.objects.create(
+            author=user, **validated_data)
+        recipe_ingredients: list = []
+        for ingredient in ingredients_data:
+            current_amount: float = ingredient['amount']
+            recipe_ingredients.append(RecipesIngredients(
+                amount=current_amount,
+                ingredient=ingredient['id'],
+                recipe=current_recipe))
+        RecipesIngredients.objects.bulk_create(recipe_ingredients)
+        tags_data = self.context['request'].data.get('tags')
+        current_recipe.tags.set(tags_data)
+        return current_recipe
+
     def get_fields(self):
         """Определяет сериализатор для поля "tags" в зависимости
         от типа HTTP-запроса."""
         fields = super().get_fields()
         request = self.context.get('request', None)
+        if fields.get('ingredients', None) is None:
+            raise APICustomException
         if request is not None and request.method in ('PATCH', 'POST', 'PUT'):
-            # Todo: попробовать использовать метод get или другие проверки
             fields['ingredients'] = RecipesIngredientsCreateSerializer(
                 many=True,
                 source='recipe_ingredient')
@@ -333,19 +353,103 @@ class RecipesSerializer(ModelSerializer):
         """Показывает наличие рецепта в избранном пользователя в поле
         'is_subscribed'. Возвращает True, если рецепт в избранном,
         False - если нет, или пользователь не авторизован.."""
-        user: User = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return RecipesFavorites.objects.filter(user=user, recipe=obj).exists()
+        return self._get_is_check(obj_queryset=obj.recipe_favorite_user)
 
     def get_is_in_shopping_cart(self, obj):
         """Показывает наличие рецепта в корзине пользователя в поле
         'is_in_shopping_cart'. Возвращает True, если рецепт в корзине,
         False - если нет, или пользователь не авторизован.."""
-        user: User = self.context['request'].user
+        return self._get_is_check(obj_queryset=obj.shopping_cart)
+
+    def to_representation(self, instance):
+        """Переопределяет сериализацию объекта:
+            - в поле "tags": сериализатор должен принимать на вход список id
+              тегов, а возвращать в ответе полую информацию от объектах;
+            - в поле "id: сериализатор должен исключить из выдачи поле 'id',
+              при 'PATCH', 'POST' и 'PUT' HTTP-запросах.
+            """
+        representation = super().to_representation(instance)
+        if self.context['request'].method in ('PATCH', 'POST', 'PUT'):
+            representation.pop('id')
+        tags_data: list = []
+        tags: list[Tags] = instance.tags.all()
+        for tag in tags:
+            tags_data.append({
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color,
+                'slug': tag.slug})
+        representation['tags'] = tags_data
+        ingredients_data: list = []
+        recipe_ingredients = instance.recipe_ingredient.all()
+        for recipe_ingredient in recipe_ingredients:
+            ingredient = recipe_ingredient.ingredient
+            ingredients_data.append({
+                'id': ingredient.id,
+                'name': ingredient.name,
+                'measurement_unit': ingredient.measurement_unit,
+                'amount': recipe_ingredient.amount})
+        representation['ingredients'] = ingredients_data
+        return representation
+
+    def update(self, instance, validated_data):
+        """Переопределяет метод обновления данных (PATCH)."""
+        instance.cooking_time = validated_data.get(
+            'cooking_time', instance.name)
+        instance.image = validated_data.get('image', instance.image)
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        RecipesIngredients.objects.filter(recipe=instance).delete()
+        ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
+        recipe_ingredients: list = []
+        for ingredient in ingredients_data:
+            current_amount: float = ingredient['amount']
+            recipe_ingredients.append(RecipesIngredients(
+                amount=current_amount,
+                ingredient=ingredient['id'],
+                recipe=instance))
+        RecipesIngredients.objects.bulk_create(recipe_ingredients)
+        tags_data = self.context['request'].data.get('tags')
+        RecipesTags.objects.filter(recipe=instance).delete()
+        instance.tags.set(tags_data)
+        instance.save()
+        return instance
+
+    def validate(self, data):
+        """Проверяет валидность данных поля "Tags".
+        Так как на вход при POST запросе ожидается список целых чисел:
+        id (ListField), невозможно осуществить валидацию при помощи
+        сериализатора, требуется ручная проверка входящих данных."""
+        cooking_time: str = data.get('cooking_time', None)
+        self._validate_field_required(name='cooking_time', value=cooking_time)
+        ingredients = data.get('recipe_ingredient', None)
+        self._validate_ingredients(ingredients=ingredients)
+        name: str = data.get('name', None)
+        self._validate_field_required(name='name', value=name)
+        tags: list[int] = self.context['request'].data.get('tags', None)
+        self._validate_tags(tags=tags)
+        text: str = data.get('text', None)
+        self._validate_field_required(name='text', value=text)
+        """При PATCH запросе (кнопка "редактировать") фронт получает
+        изображение рецепта (instance.image), но при отправке запроса
+        изображение не прикрепляется."""
+        image: str = data.get('image', None)
+        if self.context['request'].method != 'PATCH':
+            self._validate_image(image=image)
+        return data
+
+    def _get_is_check(self, obj_queryset):
+        """Вспомогательная функция:
+            - проверяет авторизован ли пользователь;
+            - проверяет существует ли в сообщенном queryset хотя бы
+              один объект с фильтрацией по user."""
+        request = self.context.get('request', None)
+        if request is None:
+            raise APICustomException
+        user: User = request.user
         return (
             not user.is_anonymous and
-            obj.shopping_cart.filter(user=user).exists())
+            obj_queryset.filter(user=user).exists())
 
     def _validate_field_required(self, name: str, value: any) -> None:
         """Вспомогательная функция для "validate": производит проверку поля
@@ -411,103 +515,6 @@ class RecipesSerializer(ModelSerializer):
         if bad_ids:
             raise ValidationError({'tags': bad_ids})
         return
-
-    def validate(self, data):
-        """Проверяет валидность данных поля "Tags".
-        Так как на вход при POST запросе ожидается список целых чисел:
-        id (ListField), невозможно осуществить валидацию при помощи
-        сериализатора, требуется ручная проверка входящих данных."""
-        cooking_time: str = data.get('cooking_time', None)
-        self._validate_field_required(name='cooking_time', value=cooking_time)
-        ingredients = data.get('recipe_ingredient', None)
-        self._validate_ingredients(ingredients=ingredients)
-        name: str = data.get('name', None)
-        self._validate_field_required(name='name', value=name)
-        tags: list[int] = self.context['request'].data.get('tags', None)
-        self._validate_tags(tags=tags)
-        text: str = data.get('text', None)
-        self._validate_field_required(name='text', value=text)
-        """При PATCH запросе (кнопка "редактировать") фронт получает
-        изображение рецепта (instance.image), но при отправке запроса
-        изображение не прикрепляется."""
-        image: str = data.get('image', None)
-        if self.context['request'].method != 'PATCH':
-            self._validate_image(image=image)
-        return data
-
-    # ToDo: create и update очень похожи, можно вынести одинаковый код
-    def create(self, validated_data):
-        """Переопределяет метод сохранения данных (POST)."""
-        print('CREATE')
-        user: User = self.context['request'].user
-        ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
-        current_recipe: Recipes = Recipes.objects.create(
-            author=user, **validated_data)
-        recipe_ingredients: list = []
-        for ingredient in ingredients_data:
-            current_amount: float = ingredient['amount']
-            recipe_ingredients.append(RecipesIngredients(
-                amount=current_amount,
-                ingredient=ingredient['id'],
-                recipe=current_recipe))
-        RecipesIngredients.objects.bulk_create(recipe_ingredients)
-        tags_data = self.context['request'].data.get('tags')
-        current_recipe.tags.set(tags_data)
-        return current_recipe
-
-    def update(self, instance, validated_data):
-        """Переопределяет метод обновления данных (PATCH)."""
-        instance.cooking_time = validated_data.get(
-            'cooking_time', instance.name)
-        instance.image = validated_data.get('image', instance.image)
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        RecipesIngredients.objects.filter(recipe=instance).delete()
-        ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
-        recipe_ingredients: list = []
-        for ingredient in ingredients_data:
-            current_amount: float = ingredient['amount']
-            recipe_ingredients.append(RecipesIngredients(
-                amount=current_amount,
-                ingredient=ingredient['id'],
-                recipe=instance))
-        RecipesIngredients.objects.bulk_create(recipe_ingredients)
-        tags_data = self.context['request'].data.get('tags')
-        RecipesTags.objects.filter(recipe=instance).delete()
-        instance.tags.set(tags_data)
-        instance.save()
-        return instance
-
-    def to_representation(self, instance):
-        """Переопределяет сериализацию объекта:
-            - в поле "tags": сериализатор должен принимать на вход список id
-              тегов, а возвращать в ответе полую информацию от объектах;
-            - в поле "id: сериализатор должен исключить из выдачи поле 'id',
-              при 'PATCH', 'POST' и 'PUT' HTTP-запросах.
-            """
-        representation = super().to_representation(instance)
-        if self.context['request'].method in ('PATCH', 'POST', 'PUT'):
-            representation.pop('id')
-        tags_data: list = []
-        tags: list[Tags] = instance.tags.all()
-        for tag in tags:
-            tags_data.append({
-                'id': tag.id,
-                'name': tag.name,
-                'color': tag.color,
-                'slug': tag.slug})
-        representation['tags'] = tags_data
-        ingredients_data: list = []
-        recipe_ingredients = instance.recipe_ingredient.all()
-        for recipe_ingredient in recipe_ingredients:
-            ingredient = recipe_ingredient.ingredient
-            ingredients_data.append({
-                'id': ingredient.id,
-                'name': ingredient.name,
-                'measurement_unit': ingredient.measurement_unit,
-                'amount': recipe_ingredient.amount})
-        representation['ingredients'] = ingredients_data
-        return representation
 
 
 class RecipesShortSerializer(ModelSerializer):
