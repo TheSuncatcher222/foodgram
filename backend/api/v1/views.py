@@ -23,6 +23,7 @@ from api.v1.serializers import (
     RecipesShortSerializer, ShoppingCartsSerializer, SubscriptionsSerializer,
     TagsSerializer)
 from foodgram_app.models import (
+    INGREDIENTS_NAME_MAX_LENGTH, INGREDIENTS_UNIT_MAX_LENGTH,
     Ingredients, Tags, Recipes, RecipesFavorites, RecipesIngredients,
     ShoppingCarts, Subscriptions)
 
@@ -54,6 +55,11 @@ def csv_import_ingredients(request):
             file, header=None, names=['name', 'measurement_unit'])
         objects: list = []
         for index, row in df.iterrows():
+            name: str = row['name']
+            measurement_unit: str = row['measurement_unit']
+            if (len(name) > INGREDIENTS_NAME_MAX_LENGTH
+                    or len(measurement_unit) > INGREDIENTS_UNIT_MAX_LENGTH):
+                pass
             objects.append(
                 Ingredients(
                     name=row['name'].lower(),
