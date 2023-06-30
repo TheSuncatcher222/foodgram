@@ -15,7 +15,7 @@
 """
 import base64
 import inspect
-
+from django.db import transaction
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -350,7 +350,7 @@ class RecipesSerializer(ModelSerializer):
             'text',
             'cooking_time')
 
-    # ToDo: create и update очень похожи, можно вынести одинаковый код
+    @transaction.atomic
     def create(self, validated_data):
         """Переопределяет метод сохранения данных (POST)."""
         request = self.context.get('request', None)
@@ -437,6 +437,7 @@ class RecipesSerializer(ModelSerializer):
         representation['ingredients'] = ingredients_data
         return representation
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         """Переопределяет метод обновления данных (PATCH)."""
         instance.cooking_time = validated_data.get(
@@ -523,7 +524,6 @@ class RecipesSerializer(ModelSerializer):
     def _validate_tags(self, tags: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         тегов из списка присланных."""
-        self._validate_field_required(name='tags', value=tags)
         if not isinstance(tags, list):
             raise ValidationError({
                 "tags": ["Укажите ID в формате списка."]})
@@ -680,8 +680,8 @@ class SubscriptionsSerializer(ModelSerializer):
         subscriber: User = data['subscriber']
         subscription_to: User = data['subscription_to']
         subscription_exists: bool = Subscriptions.objects.filter(
-                subscriber=subscriber,
-                subscription_to=subscription_to).exists()
+            subscriber=subscriber,
+            subscription_to=subscription_to).exists()
         if request_method == 'DELETE' and not subscription_exists:
             raise ValidationError(
                 "Вы не были подписаны на пользователя "
