@@ -101,10 +101,8 @@ class CustomUserSerializer(UserSerializer):
         Возвращает True, если пользователь имеет подписку, False - если не
         имеет, или пользователь не авторизован."""
         user: User = self.context['request'].user
-        return not user.is_anonymous and Subscriptions.objects.filter(
-            subscriber=user,
-            subscription_to=obj).select_related(
-                'subscriber', 'subscription_to').exists()
+        return not user.is_anonymous and user.subscriber.filter(
+            subscription_to=obj).exists()
 
     def validate_email(self, value):
         """Производит валидацию поля 'email':
