@@ -14,12 +14,13 @@
     - USERNAME_PATTERN - паттерн допустимых символов поля "username".
 """
 import base64
+import inspect
 
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
-from re import sub
+from re import sub, search
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
@@ -44,15 +45,17 @@ USERNAME_PATTERN: str = r'^[\w.@+-]+$'
 
 
 class APICustomException(APIException):
-    status_code = 500
-    default_detail = 'Internal Server Error.'
-    default_code = 'internal_server_error'
+    """Возвращает ошибку 500 с указанием того, что ошибка на сервере.
+    Для упрощения дебага указывает имя файла и номер строки, где была
+    вызвана ошибка. Для безопасности имя файла засекречивается:
+    берется только его первая буква."""
 
-    def __init__(self, detail=None, code=None):
-        if detail is not None:
-            self.detail = detail
-        if code is not None:
-            self.code = code
+    def __init__(self):
+        frame = inspect.currentframe().f_back
+        lineno = frame.f_lineno
+        filename = search(r'(\w+\.py)', frame.f_code.co_filename).group(1)[0]
+        self.detail = f"'Internal Server Error. Mark <{filename}.{lineno}>"
+        self.code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 class Base64ImageField(ImageField):
@@ -114,9 +117,10 @@ class CustomUserSerializer(UserSerializer):
         Возвращает True, если пользователь имеет подписку, False - если не
         имеет, или пользователь не авторизован."""
         request = self.context.get('request', None)
+        print(request)
         if not request:
-            raise 
-        user: User = self.context['request'].user
+            raise APICustomException()
+        user: User = request.user
         return not user.is_anonymous and user.subscriber.filter(
             subscription_to=obj).exists()
 
