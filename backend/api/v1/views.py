@@ -2,6 +2,7 @@ import csv
 
 import pandas
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -30,6 +31,7 @@ from foodgram_app.models import (
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
+@transaction.atomic
 def csv_import_ingredients(request):
     """Обрабатывает POST-запрос на эндпоинт ".../csv-import/ingredients/":
         - проверяет наличие csv-файла в запросе;
