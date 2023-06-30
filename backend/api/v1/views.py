@@ -57,8 +57,8 @@ def csv_import_ingredients(request):
         for index, row in df.iterrows():
             name: str = row['name']
             measurement_unit: str = row['measurement_unit']
-            if (len(name) > INGREDIENTS_NAME_MAX_LENGTH
-                    or len(measurement_unit) > INGREDIENTS_UNIT_MAX_LENGTH):
+            if (len(name) > INGREDIENTS_NAME_MAX_LENGTH or
+                    len(measurement_unit) > INGREDIENTS_UNIT_MAX_LENGTH):
                 pass
             objects.append(
                 Ingredients(
