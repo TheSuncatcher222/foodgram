@@ -384,8 +384,6 @@ class RecipesSerializer(ModelSerializer):
         сериализатора, требуется ручная проверка входящих данных."""
         cooking_time: str = data.get('cooking_time', None)
         self._validate_field_required(name='cooking_time', value=cooking_time)
-        image: str = data.get('image', None)
-        self._validate_image(image=image)
         ingredients = data.get('recipe_ingredient', None)
         self._validate_ingredients(ingredients=ingredients)
         name: str = data.get('name', None)
@@ -394,11 +392,18 @@ class RecipesSerializer(ModelSerializer):
         self._validate_tags(tags=tags)
         text: str = data.get('text', None)
         self._validate_field_required(name='text', value=text)
+        """При PATCH запросе (кнопка "редактировать") фронт получает
+        изображение рецепта (instance.image), но при отправке запроса
+        изображение не прикрепляется."""
+        image: str = data.get('image', None)
+        if self.context['request'].method != 'PATCH':
+            self._validate_image(image=image)
         return data
 
     # ToDo: create и update очень похожи, можно вынести одинаковый код
     def create(self, validated_data):
         """Переопределяет метод сохранения данных (POST)."""
+        print('CREATE')
         user: User = self.context['request'].user
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
         current_recipe: Recipes = Recipes.objects.create(
@@ -435,6 +440,7 @@ class RecipesSerializer(ModelSerializer):
         tags_data = self.context['request'].data.get('tags')
         RecipesTags.objects.filter(recipe=instance).delete()
         instance.tags.set(tags_data)
+        instance.save()
         return instance
 
     def to_representation(self, instance):
