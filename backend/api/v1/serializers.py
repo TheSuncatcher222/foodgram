@@ -190,10 +190,12 @@ class CustomUserSubscriptionsSerializer(ModelSerializer):
     def to_representation(self, instance):
         """Получает из запроса значение """
         representation = super().to_representation(instance)
-        recipes_limit: str = self.context[
-            'request'].query_params.get(
-                'recipes_limit')
-        if recipes_limit:
+        recipes_limit: None = None
+        request = self.context.get('request', None)
+        if request is not None:
+            recipes_limit: str = request.query_params.get(
+                'recipes_limit', None)
+        if recipes_limit is not None:
             representation['recipes'] = representation[
                 'recipes'][:int(recipes_limit)]
         return representation

@@ -183,7 +183,9 @@ class CustomUserViewSet(ModelViewSet):
             Subscriptions.objects.create(
                 subscriber=subscriber,
                 subscription_to=subscription_to)
-            serializer = CustomUserSubscriptionsSerializer(subscription_to)
+            serializer = CustomUserSubscriptionsSerializer(
+                subscription_to,
+                context={'request': request})
             data: dict = serializer.data
             status_code: status = status.HTTP_201_CREATED
         return Response(data=data, status=status_code)
