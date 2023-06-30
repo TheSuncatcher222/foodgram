@@ -187,6 +187,17 @@ class CustomUserSubscriptionsSerializer(ModelSerializer):
         """Возвращает количество рецептов у пользователя."""
         return obj.recipe_author.all().count()
 
+    def to_representation(self, instance):
+        """Получает из запроса значение """
+        representation = super().to_representation(instance)
+        recipes_limit: str = self.context[
+            'request'].query_params.get(
+                'recipes_limit')
+        if recipes_limit:
+            representation['recipes'] = representation[
+                'recipes'][:int(recipes_limit)]
+        return representation
+
 
 class IngredientsSerializer(ModelSerializer):
     """Создает сериализатор для модели "Ingredients"."""
