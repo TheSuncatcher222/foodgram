@@ -1,17 +1,16 @@
 import csv
 
 import pandas
-from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.viewsets import ModelViewSet
@@ -19,27 +18,23 @@ from rest_framework.viewsets import ModelViewSet
 from api.v1.filters import IngredientsFilter, RecipesFilter
 from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
-    CustomUserSerializer, CustomUserLoginSerializer, CustomUserSubscriptionsSerializer,
+    CustomUserSerializer, CustomUserLoginSerializer,
+    CustomUserSubscriptionsSerializer,
     IngredientsSerializer, RecipesSerializer, RecipesFavoritesSerializer,
     RecipesShortSerializer, ShoppingCartsSerializer, SubscriptionsSerializer,
     TagsSerializer)
 from foodgram_app.models import (
-    INGREDIENTS_NAME_MAX_LENGTH, INGREDIENTS_UNIT_MAX_LENGTH,
     Ingredients, Tags, Recipes, RecipesFavorites, RecipesIngredients,
     ShoppingCarts, Subscriptions)
 
 
 @api_view(['POST'])
+@permission_classes([IsAdminUser])
 def csv_import_ingredients(request):
     """Обрабатывает POST-запрос на эндпоинт ".../csv-import/ingredients/":
-        - проверяет права доступа: пользователь должен быть администратором;
         - проверяет наличие csv-файла в запросе;
         - производит его валидацию согласно модели "Ingredients";
         - при успешной валидации создает объекты модели "Ingredients."""
-    if not request.user.is_staff:
-        return Response(
-            {'Ошибка': 'Доступ запрещен.'},
-            status=status.HTTP_403_FORBIDDEN)
     if request.META.get('CONTENT_TYPE') != 'text/csv':
         return Response(
             {'Ошибка': 'Неправильный тип содержимого. Ожидается text/csv.'},
@@ -56,15 +51,15 @@ def csv_import_ingredients(request):
             file, header=None, names=['name', 'measurement_unit'])
         objects: list = []
         for index, row in df.iterrows():
-            name: str = row['name']
+            name: str = row['name'].lower()
             measurement_unit: str = row['measurement_unit']
-            if (len(name) > INGREDIENTS_NAME_MAX_LENGTH or
-                    len(measurement_unit) > INGREDIENTS_UNIT_MAX_LENGTH):
-                pass
-            objects.append(
-                Ingredients(
-                    name=row['name'].lower(),
-                    measurement_unit=row['measurement_unit']))
+            serializer: Serializer = IngredientsSerializer(
+                data={
+                    'name': name,
+                    'measurement_unit': measurement_unit})
+            serializer.is_valid(raise_exception=True)
+            print(serializer.validated_data)
+            objects.append(Ingredients(**serializer.validated_data))
         Ingredients.objects.bulk_create(objects)
         return Response({'success': 'CSV file imported successfully'})
     except Exception as e:
@@ -78,7 +73,7 @@ def custom_user_login(request):
     Доступна на эндпоинте ".../auth/token/login/"."""
     serializer: Serializer = CustomUserLoginSerializer(
         data=request.data,
-        context = {'request': request})
+        context={'request': request})
     serializer.is_valid(raise_exception=True)
     user: User = serializer.validated_data['user']
     token, _ = Token.objects.get_or_create(user=user)
