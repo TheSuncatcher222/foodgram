@@ -21,6 +21,7 @@ from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
 from re import sub
 from rest_framework import status
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.serializers import (
     ModelSerializer,
@@ -40,6 +41,18 @@ USER_USERNAME_MAX_LEN: int = 150
 USER_FORBIDDEN_USERNAMES: list[str] = ['me']
 
 USERNAME_PATTERN: str = r'^[\w.@+-]+$'
+
+
+class APICustomException(APIException):
+    status_code = 500
+    default_detail = 'Internal Server Error.'
+    default_code = 'internal_server_error'
+
+    def __init__(self, detail=None, code=None):
+        if detail is not None:
+            self.detail = detail
+        if code is not None:
+            self.code = code
 
 
 class Base64ImageField(ImageField):
@@ -100,6 +113,9 @@ class CustomUserSerializer(UserSerializer):
         """Показывает статус подписки пользователя в поле 'is_subscribed'.
         Возвращает True, если пользователь имеет подписку, False - если не
         имеет, или пользователь не авторизован."""
+        request = self.context.get('request', None)
+        if not request:
+            raise 
         user: User = self.context['request'].user
         return not user.is_anonymous and user.subscriber.filter(
             subscription_to=obj).exists()
