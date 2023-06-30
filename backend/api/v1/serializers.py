@@ -124,8 +124,10 @@ class CustomUserSerializer(UserSerializer):
             subscription_to=obj).exists()
 
     def validate_email(self, value):
-        """Производит валидацию поля 'email':
-            - проверяет на уникальность."""
+        """Производит валидацию поля 'email' проверяет на уникальность.
+        Проверка необходима, так как непереопределенная модель User пропускает
+        разных пользователей с одной почтой.
+        """
         if User.objects.filter(email=value).exists():
             raise ValidationError(
                 'Пользователь с такой электронной почтой уже существует.')
