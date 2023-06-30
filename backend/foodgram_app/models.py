@@ -85,14 +85,17 @@ class Ingredients(Model):
     name = CharField(
         db_index=True,
         max_length=INGREDIENTS_NAME_MAX_LENGTH,
-        verbose_name='Название',
-        unique=True)
+        verbose_name='Название')
     measurement_unit = CharField(
         choices=UNITS,
         max_length=INGREDIENTS_UNIT_MAX_LENGTH,
         verbose_name='Единица измерения')
 
     class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=('name', 'measurement_unit'),
+                name='name_with_unit')]
         ordering = ('name', )
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
@@ -101,6 +104,7 @@ class Ingredients(Model):
         return f'{self.name} ({self.measurement_unit})'
 
     def save(self, *args, **kwargs):
+        self.name = self.name.lower()
         self.full_clean()
         super().save(*args, **kwargs)
 
