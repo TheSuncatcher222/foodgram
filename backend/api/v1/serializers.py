@@ -615,18 +615,17 @@ class SubscriptionsSerializer(ModelSerializer):
         subscriber: User = data['subscriber']
         subscription_to: User = data['subscription_to']
         request_method: str = self.context['request'].method
-        if request_method == 'DELETE' and not Subscriptions.objects.filter(
+        subscription_exists: bool = Subscriptions.objects.filter(
                 subscriber=subscriber,
-                subscription_to=subscription_to).exists():
+                subscription_to=subscription_to).exists()
+        if request_method == 'DELETE' and not subscription_exists:
             raise ValidationError(
                 "Вы не были подписаны на пользователя "
                 f"{subscription_to.username}.")
         elif request_method == 'POST':
             if subscriber.id == subscription_to.id:
                 raise ValidationError("Вы не можете подписаться на себя.")
-            elif Subscriptions.objects.filter(
-                    subscriber=subscriber,
-                    subscription_to=subscription_to).exists():
+            elif subscription_exists:
                 raise ValidationError(
                     "Вы уже подписаны на пользователя "
                     f"{subscription_to.username}.")
