@@ -266,7 +266,7 @@ class TestCustomUserViewSet():
         'password': 'test_password'}
     NON_VALID_POST_DATA_USERNAME_EXP: dict = {
         'username': [
-            'Использование "!", "1", "2", "3", "4", "5", "😊" в имени '
+            'Использование [! 1 2 3 4 5 😊] в имени '
             'пользователя запрещено.']}
     NON_VALID_POST_DATA_EXISTED: dict = {
         'email': 'test_user_email_1@email.com',
