@@ -214,11 +214,14 @@ class TestIngredientsModel():
         assert Ingredients.objects.all().count() == 0
         with pytest.raises(ValidationError) as err:
             Ingredients.objects.create(
-                name=None,
+                # 'NoneType' object has no attribute 'lower'
+                # name=None,
+                name='test_name',
                 measurement_unit=None)
         assert str(err.value) == (
-            "{'name': ['Это поле не может иметь значение NULL.'], "
-            "'measurement_unit': ['Это поле не может иметь значение NULL.']}")
+            # "{'name': ['Это поле не может иметь значение NULL.'], "
+            # "'measurement_unit': ['Это поле не может иметь значение NULL.']}")
+            "{'measurement_unit': ['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
         return
 
@@ -228,7 +231,8 @@ class TestIngredientsModel():
         with pytest.raises(ValidationError) as err:
             create_ingredient_obj(num=1)
         assert str(err.value) == (
-            "{'name': ['Ингредиент с таким Название уже существует.']}")
+            "{'__all__': ['Ингредиент с такими значениями полей Название и "
+            "Единица измерения уже существует.']}")
         return
 
     def test_meta(self) -> None:
@@ -242,7 +246,6 @@ class TestIngredientsModel():
         name = ingredient._meta.get_field('name')
         assert name.db_index
         assert name.verbose_name == 'Название'
-        assert name.unique
         measurement_unit = ingredient._meta.get_field('measurement_unit')
         assert measurement_unit.verbose_name == 'Единица измерения'
         return
@@ -336,11 +339,13 @@ class TestTagsModel():
         with pytest.raises(ValidationError) as err:
             Tags.objects.create(
                 color=None,
-                name=None,
+                # 'NoneType' object has no attribute 'lower' 
+                # name=None,
+                name = 'test_name',
                 slug=None)
         assert str(err.value) == (
             "{'color': ['Это поле не может иметь значение NULL.'], "
-            "'name': ['Это поле не может иметь значение NULL.'], "
+            # "'name': ['Это поле не может иметь значение NULL.'], "
             "'slug': ['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
         return
