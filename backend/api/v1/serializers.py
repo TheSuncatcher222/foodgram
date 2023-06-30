@@ -430,16 +430,10 @@ class RecipesSerializer(ModelSerializer):
         Так как на вход при POST запросе ожидается список целых чисел:
         id (ListField), невозможно осуществить валидацию при помощи
         сериализатора, требуется ручная проверка входящих данных."""
-        cooking_time: str = data.get('cooking_time', None)
-        self._validate_field_required(name='cooking_time', value=cooking_time)
         ingredients = data.get('recipe_ingredient', None)
         self._validate_ingredients(ingredients=ingredients)
-        name: str = data.get('name', None)
-        self._validate_field_required(name='name', value=name)
         tags: list[int] = self.context['request'].data.get('tags', None)
         self._validate_tags(tags=tags)
-        text: str = data.get('text', None)
-        self._validate_field_required(name='text', value=text)
         """При PATCH запросе (кнопка "редактировать") фронт получает
         изображение рецепта (instance.image), но при отправке запроса
         изображение не прикрепляется."""
@@ -461,22 +455,9 @@ class RecipesSerializer(ModelSerializer):
             not user.is_anonymous and
             obj_queryset.filter(user=user).exists())
 
-    def _validate_field_required(self, name: str, value: any) -> None:
-        """Вспомогательная функция для "validate": производит проверку поля
-        с именем "name" и значением "value": если значение будет None,
-        вызовет ошибку валидации и укажет, что поле "name" обязательное."""
-        if value is None:
-            raise ValidationError({
-                f"{name}": ["Обязательное поле."]})
-        return
-
     def _validate_ingredients(self, ingredients: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         ингредиентов из списка присланных."""
-        self._validate_field_required(name='ingredients', value=ingredients)
-        if len(ingredients) == 0:
-            raise ValidationError({
-                "ingredients": ["Поле не может быть пустым."]})
         for ingredient in ingredients:
             if 'id' not in ingredient:
                 raise ValidationError(
