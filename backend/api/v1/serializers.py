@@ -124,7 +124,8 @@ class CustomUserSerializer(UserSerializer):
             sort_chars: str = ' '.join(
                 f'{c}' for c in sorted(set(forbidden_chars)))
             raise ValidationError(
-                f'Использование [{sort_chars}] в имени пользователя запрещено.')
+                f'Использование [{sort_chars}] в имени '
+                'пользователя запрещено.')
         for forbidden in USER_FORBIDDEN_USERNAMES:
             if value.lower() == forbidden.lower():
                 raise ValidationError(
@@ -322,9 +323,9 @@ class RecipesSerializer(ModelSerializer):
         'is_in_shopping_cart'. Возвращает True, если рецепт в корзине,
         False - если нет, или пользователь не авторизован.."""
         user: User = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return ShoppingCarts.objects.filter(user=user, recipe=obj).exists()
+        return (
+            not user.is_anonymous and
+            obj.shopping_cart.filter(user=user).exists())
 
     def _validate_field_required(self, name: str, value: any) -> None:
         """Вспомогательная функция для "validate": производит проверку поля
