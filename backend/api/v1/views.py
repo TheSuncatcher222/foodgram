@@ -13,12 +13,13 @@ from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 from rest_framework.viewsets import ModelViewSet
 
 from api.v1.filters import IngredientsFilter, RecipesFilter
 from api.v1.permissions import IsAuthorOrAdminOrReadOnly
 from api.v1.serializers import (
-    CustomUserSerializer, CustomUserSubscriptionsSerializer,
+    CustomUserSerializer, CustomUserLoginSerializer, CustomUserSubscriptionsSerializer,
     IngredientsSerializer, RecipesSerializer, RecipesFavoritesSerializer,
     RecipesShortSerializer, ShoppingCartsSerializer, SubscriptionsSerializer,
     TagsSerializer)
@@ -72,24 +73,14 @@ def csv_import_ingredients(request):
 
 @api_view(['POST'])
 def custom_user_login(request):
-    email: str = request.data.get('email')
-    password: str = request.data.get('password')
-    if not email or not password:
-        return Response(
-            {'Ошибка': 'Не указана электронная почта или пароль.'},
-            status=status.HTTP_400_BAD_REQUEST)
-    user_set = User.objects.filter(email=email)
-    if not user_set:
-        return Response(
-            {'error': 'Неверное указана электронная почта или пароль.'},
-            status=status.HTTP_401_UNAUTHORIZED)
-    try:
-        user = User.objects.get(email=email)
-    except User.DoesNotExist:
-        return Response(
-            {'error': 'Неверное имя пользователя или пароль.'},
-            status=status.HTTP_401_UNAUTHORIZED)
-    user = authenticate(request, username=user.username, password=password)
+    """Вью-функция проверяет аутентификационные данные пользователя
+    и возвращает токен в случае успеха.
+    Доступна на эндпоинте ".../auth/token/login/"."""
+    serializer: Serializer = CustomUserLoginSerializer(
+        data=request.data,
+        context = {'request': request})
+    serializer.is_valid(raise_exception=True)
+    user: User = serializer.validated_data['user']
     token, _ = Token.objects.get_or_create(user=user)
     return Response({'auth_token': token.key}, status=status.HTTP_200_OK)
 

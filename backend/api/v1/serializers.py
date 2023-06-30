@@ -16,6 +16,7 @@
 import base64
 import inspect
 
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
@@ -25,7 +26,7 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.serializers import (
-    ModelSerializer,
+    Serializer, ModelSerializer,
     BooleanField, CharField, EmailField, ImageField, IntegerField, ListField,
     PrimaryKeyRelatedField, SerializerMethodField,
     ValidationError)
@@ -155,6 +156,40 @@ class CustomUserSerializer(UserSerializer):
             raise ValidationError(
                 'Пользователь с таким именем уже существует.')
         return value
+
+
+class CustomUserLoginSerializer(Serializer):
+    """Создает сериализатор для валидации аунтификационных данных на
+    URL ".../auth/token/login/"."""
+    
+    email = EmailField()
+    password = CharField()
+
+    def validate(self, data):
+        """Проверяет корректность указанных полей:
+            - email;
+            - password.
+        Возвращает объект пользователя в случае успешной аутентификации."""
+        request = self.context.get('request', None)
+        if not request:
+            raise APICustomException()
+        email: str = data.get('email', None)
+        password: str = data.get('password', None)
+        if email is None or password is None:
+            raise ValidationError('Не указана электронная почта или пароль!')
+        if not User.objects.filter(email=email).exists():
+            raise ValidationError(
+                'Указана неверная электронная почта или пароль!')
+        username: str = User.objects.get(email=email).username
+        user = authenticate(
+            request=request,
+            username=username,
+            password=password)
+        if not user:
+            raise ValidationError(
+                'Указана неверная электронная почта или пароль!')
+        data['user'] = user
+        return data
 
 
 class RecipesShortSerializer(ModelSerializer):
