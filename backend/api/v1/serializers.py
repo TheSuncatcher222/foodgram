@@ -354,6 +354,9 @@ class RecipesSerializer(ModelSerializer):
                     {'ingredients': {'amount': [
                         'Недопустимый формат ввода! '
                         'Укажите количество ингредиента.']}})
+        ingredient_ids = [ingredient['id'] for ingredient in ingredients]
+        if len(ingredient_ids) != len(set(ingredient_ids)):
+            raise ValidationError('В рецепте продублированы ингредиенты!')
         return
 
     def _validate_image(self, image: str) -> None:
