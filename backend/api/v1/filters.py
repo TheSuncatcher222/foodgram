@@ -46,7 +46,7 @@ class RecipesFilter(FilterSet):
             - отображает все рецепты, если фильтр не был указан.
     """
 
-    author = CharFilter(field_name='author__username')
+    author = CharFilter(field_name='author__id')
     is_favorited = BooleanFilter(method='filter_is_favorited')
     is_in_shopping_cart = BooleanFilter(method='filter_is_in_shopping_cart')
     tags = ModelMultipleChoiceFilter(
