@@ -121,10 +121,10 @@ class CustomUserSerializer(UserSerializer):
             repl='',
             string=value)
         if forbidden_chars:
-            sort_chars: str = ', '.join(
-                f'"{c}"' for c in sorted(set(forbidden_chars)))
+            sort_chars: str = ' '.join(
+                f'{c}' for c in sorted(set(forbidden_chars)))
             raise ValidationError(
-                f'Использование {sort_chars} в имени пользователя запрещено.')
+                f'Использование [{sort_chars}] в имени пользователя запрещено.')
         for forbidden in USER_FORBIDDEN_USERNAMES:
             if value.lower() == forbidden.lower():
                 raise ValidationError(
