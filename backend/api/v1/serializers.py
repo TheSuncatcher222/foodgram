@@ -489,9 +489,8 @@ class RecipesSerializer(ModelSerializer):
         if request is None:
             raise APICustomException()
         user: User = request.user
-        return (
-            not user.is_anonymous and
-            obj_queryset.filter(user=user).exists())
+        return not user.is_anonymous and obj_queryset.filter(
+            user=user).exists()
 
     def _validate_ingredients(self, ingredients: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию

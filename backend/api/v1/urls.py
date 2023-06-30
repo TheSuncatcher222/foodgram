@@ -29,7 +29,7 @@ urlpatterns_auth_token = [
          name='token_create'),
     path('logout/',
          TokenDestroyView.as_view(),
-         name='token_destroy'),]
+         name='token_destroy')]
 
 urlpatterns = [
     path('auth/token/', include(urlpatterns_auth_token)),
