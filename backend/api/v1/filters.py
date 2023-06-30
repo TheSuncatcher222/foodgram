@@ -7,12 +7,13 @@
 """
 
 from django_filters.rest_framework import (
-    Filter, FilterSet,
-    BooleanFilter, CharFilter)
+    FilterSet,
+    BooleanFilter, CharFilter, ModelMultipleChoiceFilter)
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.filters import BaseFilterBackend
 
-from foodgram_app.models import Recipes, RecipesFavorites, ShoppingCarts, User
+from foodgram_app.models import (
+    Recipes, RecipesFavorites, ShoppingCarts, Tags, User)
 
 
 class IngredientsFilter(BaseFilterBackend):
@@ -30,23 +31,6 @@ class IngredientsFilter(BaseFilterBackend):
         return queryset
 
 
-class TagsFilter(Filter):
-    """Вспомогательный фильтр для RecipesFilter, позволяющий вести фильтрацию
-    по Many-To-Many полю "tags" модели "Recipes".
-    """
-
-    def filter(self, queryset, value):
-        """Определяет список тегов, которые удовлетворяют введенному(ым)
-        значению(ям) поля "name" тега(ов)."""
-        if value:
-            """При фильтрации теги разделяются символом "_"."""
-            tags = value.split('_')
-            """Должны быть выданы те рецепты, у которых есть хотя бы
-            один из тегов."""
-            queryset = queryset.filter(tags__slug__in=tags)
-        return queryset
-
-
 class RecipesFilter(FilterSet):
     """Создает фильтр для "RecipesViewSet".
     Позволяет осуществлять фильтрацию по полям:
@@ -56,30 +40,28 @@ class RecipesFilter(FilterSet):
         - is_in_shopping_cart: отображает только те рецепты, которые у
                                пользователя добавлены в корзину (есть объект
                                в ShoppingCarts);
-        - tags: отображает только те рецепты, для которых определен(ы)
-                выбранный(е) тег(и) (через slug).
+        - tags:
+            - отображает только те рецепты, для которых определен(ы)
+              выбранный(е) тег(и) (через slug);
+            - отображает все рецепты, если фильтр не был указан.
     """
 
     author = CharFilter(field_name='author__username')
     is_favorited = BooleanFilter(method='filter_is_favorited')
     is_in_shopping_cart = BooleanFilter(method='filter_is_in_shopping_cart')
-    tags = CharFilter(method='filter_by_tags')
+    tags = ModelMultipleChoiceFilter(
+        field_name='tags__slug',
+        to_field_name='slug',
+        queryset=Tags.objects.all())
 
     class Meta:
         model = Recipes
-        fields = ('author', 'is_favorited', 'tags')
-
-    def filter_by_tags(self, queryset, name, value):
-        print(value)
-        tags = value.split('_')
-        print(tags)
-        return queryset.filter(tags__slug__in=tags)
+        fields = ('author', 'is_favorited', 'is_in_shopping_cart', 'tags')
 
     def _filter_recipes(self, queryset, value, model):
         """Вспомогательная функция. Фильтрует объекты модели "Recipes" согласно
         получаемому списку ID.
         """
-        print(value)
         if not value:
             return queryset
         user: User = self.request.user
