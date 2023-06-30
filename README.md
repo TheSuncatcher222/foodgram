@@ -37,13 +37,13 @@ Foodgram разработан с использованием следующих
 - [Python] (v.3.11) - целевой язык программирования backend
 - [Django] (v.4.1) - высокоуровневый веб-фреймворк
 - [Django REST framework] (v.3.12.4) - инструмент для создания Web API
-- [Simple JWT] (v.2.1.0) - плагин, предоставляющий JSON Web Token аунтификацию для Django REST Framework, разработанную в соответствии со стандартом RFC 7519
+- [Simple JWT] (v.2.1.0) - плагин, предоставляющий JSON Web Token аутентификацию для Django REST Framework, разработанную в соответствии со стандартом RFC 7519
 - [Gunicorn] (v.20.1) - Python WSGI HTTP-сервер для UNIX
 - [Nginx] - HTTP-сервер и обратный прокси-сервер
 - [PostgreSQL] (v.13.10) - объектно-реляционная база данных
 - [Docker] (v.24.0) - инструмент для автоматизирования процессов разработки, доставки и запуска приложений в контейнерах
 - [NodeJS] (v.13.12) - это среда выполнения JavaScript
-- [JavaScript] - мультипарадигменный язык программирования fronend
+- [JavaScript] - мультипарадигменный язык программирования frontend
 - [React] - библиотека JavaScript для разработки пользовательских интерфейсов (UI) веб-приложений
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Django](https://img.shields.io/badge/django-%23092E20.svg?style=for-the-badge&logo=django&logoColor=white) ![DjangoREST](https://img.shields.io/badge/DJANGO-REST-ff1709?style=for-the-badge&logo=django&logoColor=white&color=ff1709&labelColor=gray) ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens) ![Gunicorn](https://img.shields.io/badge/gunicorn-%298729.svg?style=for-the-badge&logo=gunicorn&logoColor=white) ![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white) ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white) ![Nginx](https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white) ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white) ![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E) ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
@@ -56,7 +56,7 @@ ___
 
 ### 1. Создание и развертка контейнеров проекта:
 
-Форкнуть репозиторий, сконировать и перейти в рабочкорневую папку `foodgram-project-react`
+Форкнуть репозиторий, сконировать и перейти в рабочую корневую папку `foodgram-project-react`
 
 Переименовать .env.example в .env и заполнить по шаблону:
 
@@ -70,7 +70,7 @@ nano .env
 ```
 # Для Linux
 sudo systemctl status docker
-# Для Windows и MacOS вызвать диспетчер задач и убедиться, что процесс(ы) Docker Desctop запущен(ы)
+# Для Windows и MacOS вызвать диспетчер задач и убедиться, что процесс(ы) Docker Desktop запущен(ы)
 ```
 
 Развернуть контейнерное пространство:
@@ -108,7 +108,7 @@ gateway:
    ...
 ```
 
-Развернуть контейнерную группу в виде фоновоного демона:
+Развернуть контейнерную группу в виде фонового демона:
 
 ```
 docker compose up -d
@@ -121,11 +121,11 @@ docker compose exec backend python manage.py makemigrations foodgram_app
 docker compose exec backend python manage.py migrate
 ```
 
-Настроить Ваш сервер на отпраку запросов к сайту Foodgram на порт 8000 (согласно настройке образа `nginx`).
+Настроить Ваш сервер на отправку запросов к сайту Foodgram на порт 8000 (согласно настройке образа `nginx`).
    
 2. Создания CI/CD на GitHub Actions
 
-Создать в корне проекта скрытую директиву для размещения файла с интсрукциями для GitHub Actions:
+Создать в корне проекта скрытую директиву для размещения файла с инструкциями для GitHub Actions:
 
 ```
 mkdir .github/workflows
@@ -149,8 +149,8 @@ mv foodgram_workflow.yml ./.github/workflows/foodgram_workflow.yml
 - TELEGRAM_BOT_TOKEN - токен Telegram Bot**, который будет уведомлять об успешном деплое проекта на сервере
 - TELEGRAM_ME_ID - ID пользователя Telegram, которому бот будет присылать сообщения
 
-\* под сервером имеется ввиду сервер, на котором разворачивается Kittygram
-\*\* если уведомления в телеграм не нужны, необходимо из `kittygram_workflow.yml` удалить задание `send_message_telegram`
+\* под сервером имеется ввиду сервер, на котором разворачивается Foodgram
+\*\* если уведомления в телеграм не нужны, необходимо из `foodgram_workflow.yml` удалить задание `send_message_telegram`
 
 3. Результаты работы
 
@@ -161,19 +161,19 @@ mv foodgram_workflow.yml ./.github/workflows/foodgram_workflow.yml
 - контейнеры скачаются с DockerHub облако на сервер и перезапустятся
 
 ### 2. Взаимодействие по API:
-Веб-приложение позволяет взаимодействовать с базой данных также посредством пубичного API. Полная документация доступна в отдельном контейнере.
+Веб-приложение позволяет взаимодействовать с базой данных также посредством публичного API. Полная документация доступна в отдельном контейнере.
 
 Перейти в папку с инфраструктурой:
 ```
 cd infra
 ```
 
-Развернуть контейнерную группу в виде фоновоного демона:
+Развернуть контейнерную группу в виде фонового демона:
 ```
 docker compose up -d
 ```
 
-При выполнении этой команде сервис frontend, описанный в docker-compose.yml подготовит файлы, необходимые для работы фронтенд-приложения, а затем прекратит свою работу.
+При выполнении этой команде сервис frontend, описанный в docker-compose.yml подготовит файлы, необходимые для работы frontend-приложения, а затем прекратит свою работу.
 
 Проект запустится на адресе http://localhost, увидеть спецификацию API вы сможете по адресу http://localhost/api/docs/.
 
@@ -259,6 +259,28 @@ Content-Type: application/json
   "auth_token": "aaAAaa111A1A1aa"
 }
 ```
+
+- получение списка ингредиентов из рецептов в корзине
+
+```
+### GET: скачать корзину в CSV.
+GET http://foodgram.com/api/recipes/download_shopping_cart/ HTTP/1.1
+Content-Type: application/json
+Authorization: Token a8bf69c882f620d322ff504c6d21ccfcc28b46e9
+```
+
+```
+HTTP/1.1 200 OK
+Server: nginx
+Content-Type: text/csv
+...
+
+name,measurement_unit,amount
+клубника,г,777.0
+ежевика,г,222.0
+...
+```
+
 ___
 
 ### LICENCE
