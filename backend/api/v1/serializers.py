@@ -209,7 +209,7 @@ class CustomUserSubscriptionsSerializer(ModelSerializer):
         """Получает из запроса значение """
         representation = super().to_representation(instance)
         if representation.get('recipes', None) is None:
-            raise APICustomException
+            raise APICustomException()
         recipes_limit: None = None
         request = self.context.get('request', None)
         if request is not None:
@@ -316,7 +316,12 @@ class RecipesSerializer(ModelSerializer):
     # ToDo: create и update очень похожи, можно вынести одинаковый код
     def create(self, validated_data):
         """Переопределяет метод сохранения данных (POST)."""
-        user: User = self.context['request'].user
+        request = self.context.get('request', None)
+        if not request:
+            raise APICustomException()
+        user: User = request.user
+        """Не нужно проверять наличие полей в validated_data и context
+        так как это уде проверяется в методе validate."""
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
         current_recipe: Recipes = Recipes.objects.create(
             author=user, **validated_data)
@@ -338,7 +343,7 @@ class RecipesSerializer(ModelSerializer):
         fields = super().get_fields()
         request = self.context.get('request', None)
         if fields.get('ingredients', None) is None:
-            raise APICustomException
+            raise APICustomException()
         if request is not None and request.method in ('PATCH', 'POST', 'PUT'):
             fields['ingredients'] = RecipesIngredientsCreateSerializer(
                 many=True,
@@ -369,7 +374,10 @@ class RecipesSerializer(ModelSerializer):
               при 'PATCH', 'POST' и 'PUT' HTTP-запросах.
             """
         representation = super().to_representation(instance)
-        if self.context['request'].method in ('PATCH', 'POST', 'PUT'):
+        request = self.context.get('request', None)
+        if not request or 'id' not in representation:
+            raise APICustomException()
+        if request.method in ('PATCH', 'POST', 'PUT'):
             representation.pop('id')
         tags_data: list = []
         tags: list[Tags] = instance.tags.all()
@@ -400,6 +408,8 @@ class RecipesSerializer(ModelSerializer):
         instance.name = validated_data.get('name', instance.name)
         instance.text = validated_data.get('text', instance.text)
         RecipesIngredients.objects.filter(recipe=instance).delete()
+        """Не нужно проверять наличие полей в validated_data и context
+        так как это уде проверяется в методе validate."""
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
         recipe_ingredients: list = []
         for ingredient in ingredients_data:
@@ -445,7 +455,7 @@ class RecipesSerializer(ModelSerializer):
               один объект с фильтрацией по user."""
         request = self.context.get('request', None)
         if request is None:
-            raise APICustomException
+            raise APICustomException()
         user: User = request.user
         return (
             not user.is_anonymous and
@@ -546,9 +556,12 @@ class RecipesFavoritesSerializer(ModelSerializer):
               "recipe" в избранное;
             - POST: проверяет, что пользователь "user" не добавляет
               рецепт "recipe" в избранное повторно."""
-        user: User = data['user']
-        recipe: Recipes = data['recipe']
-        request_method: str = self.context['request'].method
+        request = self.context.get('request', None)
+        if not request:
+            raise APICustomException()
+        request_method: str = request.method
+        user: User = data.get('user', None)
+        recipe: Recipes = data.get('recipe', None)
         if request_method == 'DELETE' and not RecipesFavorites.objects.filter(
                 recipe=recipe, user=user).exists():
             raise ValidationError({
@@ -564,7 +577,7 @@ class RecipesFavoritesSerializer(ModelSerializer):
     def create(self, serializer):
         """Дополняет метод save() для записи в БД:
             - добавляет запись в таблицу "RecipesFavorites"."""
-        recipe_id = self.kwargs['id']
+        recipe_id = self.kwargs.get('id', None)
         recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
         user: User = self.request.user
         if RecipesFavorites.objects.filter(
@@ -578,7 +591,7 @@ class RecipesFavoritesSerializer(ModelSerializer):
     def destroy(self, request, *args, **kwargs):
         """Дополняет метод destroy() для удаления из БД:
             - удаляет запись из таблицы "RecipesFavorites"."""
-        recipe_id: int = self.kwargs['pk']
+        recipe_id = self.kwargs.get('id', None)
         recipe: Recipes = get_object_or_404(Recipes, id=recipe_id)
         user: User = self.request.user
         if not RecipesFavorites.objects.filter(
@@ -607,9 +620,12 @@ class ShoppingCartsSerializer(ModelSerializer):
               "recipe" в корзине;
             - POST: проверяет, что пользователь "user" не добавляет
               рецепт "recipe" в корзину повторно."""
+        request = self.context.get('request', None)
+        if not request:
+            raise APICustomException()
+        request_method: str = request.method
         user: User = data['user']
         recipe: Recipes = data['recipe']
-        request_method: str = self.context['request'].method
         if request_method == 'DELETE' and not ShoppingCarts.objects.filter(
                 recipe=recipe, user=user).exists():
             raise ValidationError('Ошибка удаления. Рецепта нет в корзине.')
@@ -639,9 +655,12 @@ class SubscriptionsSerializer(ModelSerializer):
                   сам на себя;
                 - проверяет, что пользователь "subscriber" не осуществляет
                   повторную подписку на пользователя "subscription_to"."""
+        request = self.context.get('request', None)
+        if not request:
+            raise APICustomException()
+        request_method: str = request.method
         subscriber: User = data['subscriber']
         subscription_to: User = data['subscription_to']
-        request_method: str = self.context['request'].method
         subscription_exists: bool = Subscriptions.objects.filter(
                 subscriber=subscriber,
                 subscription_to=subscription_to).exists()
