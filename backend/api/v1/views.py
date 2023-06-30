@@ -56,7 +56,7 @@ def csv_import_ingredients(request):
         for index, row in df.iterrows():
             objects.append(
                 Ingredients(
-                    name=row['name'],
+                    name=row['name'].lower(),
                     measurement_unit=row['measurement_unit']))
         Ingredients.objects.bulk_create(objects)
         return Response({'success': 'CSV file imported successfully'})
