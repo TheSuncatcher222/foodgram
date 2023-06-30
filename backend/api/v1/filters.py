@@ -27,7 +27,7 @@ class IngredientsFilter(BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         name = request.query_params.get('name')
         if name:
-            queryset = queryset.filter(name__icontains=name)
+            queryset = queryset.filter(name__istartswith=name.lower())
         return queryset
 
 
