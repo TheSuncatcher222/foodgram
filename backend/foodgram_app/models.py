@@ -495,6 +495,10 @@ class Subscriptions(Model):
         verbose_name='Автор на которого подписка')
 
     class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=['subscriber', 'subscription_to'],
+                name='unique_subscription')]
         ordering = ('-id', )
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки на авторов'
@@ -504,17 +508,6 @@ class Subscriptions(Model):
             f'Подписка {self.subscriber.username} '
             f'на {self.subscription_to.username}')
 
-    @staticmethod
-    def _validate_unique_subscription(self):
-        """Проверяет уникальность подписки user_1 на user_2."""
-        if Subscriptions.objects.filter(
-                subscriber=self.subscriber,
-                subscription_to=self.subscription_to).exists():
-            raise ValidationError(
-                'Подписка между данными пользователями уже существует!')
-        return
-
     def save(self, *args, **kwargs):
         self.full_clean()
-        self._validate_unique_subscription(self)
         super().save(*args, **kwargs)
