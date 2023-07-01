@@ -141,7 +141,7 @@ class Tags(Model):
     color = CharField(
         max_length=TAGS_COLOR_MAX_LEN,
         validators=[RegexValidator(
-            regex=r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$',
+            regex=r'^#[0-9a-fA-F]{6}$',
             message='Введите корректный HEX цвет!')],
         unique=True,
         verbose_name='HEX цвет')
@@ -168,19 +168,8 @@ class Tags(Model):
     def __str__(self):
         return f'{self.name} ({self.slug})'
 
-    def _validate_hex_format(self) -> str:
-        """Производит валидацию значения цветового HEX кода: приводит его к
-        формату #RRGGBB. Возвращает 6-значный цветовой код."""
-        if self.color and len(self.color) == 4:
-            self.color = (
-                f'#{self.color[1]*2}{self.color[2]*2}{self.color[3]*2}')
-        return
-
     def save(self, *args, **kwargs):
-        """Переопределяет метод сохранения модели:
-            - производит дополнительную валидацию поля "color";
-            - вызывает метод full_clean()."""
-        self._validate_hex_format()
+        """Производит проверку валидности полей и сохраняет объект в БД."""
         self.full_clean()
         super().save(*args, **kwargs)
 
