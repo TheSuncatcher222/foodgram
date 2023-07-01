@@ -362,16 +362,9 @@ class RecipesSerializer(ModelSerializer):
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
         current_recipe: Recipes = Recipes.objects.create(
             author=user, **validated_data)
-        recipe_ingredients: list = []
-        for ingredient in ingredients_data:
-            current_amount: float = ingredient['amount']
-            recipe_ingredients.append(RecipesIngredients(
-                amount=current_amount,
-                ingredient=ingredient['id'],
-                recipe=current_recipe))
-        RecipesIngredients.objects.bulk_create(recipe_ingredients)
-        tags_data = self.context['request'].data.get('tags')
-        current_recipe.tags.set(tags_data)
+        self._set_ingredients(
+            ingredients_data=ingredients_data, recipe=current_recipe)
+        self._set_tags(context=self.context, recipe=current_recipe)
         return current_recipe
 
     def get_fields(self):
@@ -449,17 +442,10 @@ class RecipesSerializer(ModelSerializer):
         """Не нужно проверять наличие полей в validated_data и context
         так как это уде проверяется в методе validate."""
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
-        recipe_ingredients: list = []
-        for ingredient in ingredients_data:
-            current_amount: float = ingredient['amount']
-            recipe_ingredients.append(RecipesIngredients(
-                amount=current_amount,
-                ingredient=ingredient['id'],
-                recipe=instance))
-        RecipesIngredients.objects.bulk_create(recipe_ingredients)
-        tags_data = self.context['request'].data.get('tags')
+        self._set_ingredients(
+            ingredients_data=ingredients_data, recipe=instance)
         RecipesTags.objects.filter(recipe=instance).delete()
-        instance.tags.set(tags_data)
+        self._set_tags(context=self.context, recipe=instance)
         instance.save()
         return instance
 
@@ -491,6 +477,26 @@ class RecipesSerializer(ModelSerializer):
         user: User = request.user
         return not user.is_anonymous and obj_queryset.filter(
             user=user).exists()
+
+    def _set_ingredients(self, ingredients_data: list[dict], recipe: Recipes):
+        """Вспомогательная функция для create() и update(): создает объекты
+        в модели "RecipesIngredients" согласно данным, переданным в
+        ingredients_data (перечень "id" и "amount" ингридиентов)."""
+        recipe_ingredients: list = []
+        for ingredient in ingredients_data:
+            current_amount: float = ingredient['amount']
+            recipe_ingredients.append(RecipesIngredients(
+                amount=current_amount,
+                ingredient=ingredient['id'],
+                recipe=recipe))
+        RecipesIngredients.objects.bulk_create(recipe_ingredients)
+
+    def _set_tags(self, context: dict, recipe: Recipes):
+        """Вспомогательная функция для create() и update(): создает объекты
+        в модели "RecipesTags" согласно данным, переданным в context
+        (список "id" тегов)."""
+        tags_data = context['request'].data.get('tags')
+        recipe.tags.set(tags_data)
 
     def _validate_ingredients(self, ingredients: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию
