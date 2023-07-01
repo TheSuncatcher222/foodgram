@@ -60,7 +60,6 @@ def csv_import_ingredients(request):
                     'name': name,
                     'measurement_unit': measurement_unit})
             serializer.is_valid(raise_exception=True)
-            print(serializer.validated_data)
             objects.append(Ingredients(**serializer.validated_data))
         Ingredients.objects.bulk_create(objects)
         return Response({'success': 'CSV file imported successfully'})
