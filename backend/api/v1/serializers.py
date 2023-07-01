@@ -495,18 +495,6 @@ class RecipesSerializer(ModelSerializer):
     def _validate_ingredients(self, ingredients: list) -> None:
         """Вспомогательная функция для "validate": производит валидацию
         ингредиентов из списка присланных."""
-        for ingredient in ingredients:
-            if 'id' not in ingredient:
-                raise ValidationError(
-                    {'ingredients': {'id': ["Обязательное поле."]}})
-            if 'amount' not in ingredient:
-                raise ValidationError(
-                    {'ingredients': {'amount': ["Обязательное поле."]}})
-            if not isinstance(ingredient['amount'], float):
-                raise ValidationError(
-                    {'ingredients': {'amount': [
-                        'Недопустимый формат ввода! '
-                        'Укажите количество ингредиента.']}})
         ingredient_ids = [ingredient['id'] for ingredient in ingredients]
         if len(ingredient_ids) != len(set(ingredient_ids)):
             raise ValidationError('В рецепте продублированы ингредиенты!')
