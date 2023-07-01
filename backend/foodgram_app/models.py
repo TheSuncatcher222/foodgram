@@ -15,12 +15,11 @@
 """
 
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db.models import (
     CASCADE, SET_NULL,
     Model,
-    CharField, FloatField, ForeignKey, ImageField, IntegerField,
+    CharField, FloatField, ForeignKey, ImageField,
     ManyToManyField, PositiveSmallIntegerField, SlugField, TextField,
     UniqueConstraint)
 
