@@ -91,22 +91,6 @@ class CustomUserSerializer(UserSerializer):
         write_only=True)
     username = CharField(max_length=USER_USERNAME_MAX_LEN)
 
-    class Meta:
-        model = User
-        fields = (
-            'email',
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-            'password',
-            'is_subscribed')
-        extra_kwargs = {
-            'email': {'required': True},
-            'first_name': {'required': True},
-            'last_name': {'required': True},
-            'password': {'required': True}}
-
     def create(self, validated_data):
         """Переопределяет метод сохранения данных: для сохранения объекта
         используется метод "create_user()"."""
@@ -156,6 +140,22 @@ class CustomUserSerializer(UserSerializer):
             raise ValidationError(
                 'Пользователь с таким именем уже существует.')
         return value
+
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'password',
+            'is_subscribed')
+        extra_kwargs = {
+            'email': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+            'password': {'required': True}}
 
 
 class CustomUserLoginSerializer(Serializer):
@@ -220,18 +220,6 @@ class CustomUserSubscriptionsSerializer(ModelSerializer):
     подписками пользователя."""
     is_subscribed = BooleanField(default=True)
 
-    class Meta:
-        model = User
-        fields = (
-            'email',
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-            'is_subscribed',
-            'recipes_count',
-            'recipes')
-
     def get_is_subscribed(self, obj):
         """Передает в поле "is_subscribed" значение "True".
         Все объекты модели "User" эндпоинта обязательно являются
@@ -257,6 +245,18 @@ class CustomUserSubscriptionsSerializer(ModelSerializer):
                 'recipes'][:int(recipes_limit)]
         return representation
 
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes_count',
+            'recipes')
+
 
 class IngredientsSerializer(ModelSerializer):
     """Создает сериализатор для модели "Ingredients"."""
@@ -280,14 +280,6 @@ class RecipesIngredientsSerializer(ModelSerializer):
     name = CharField(source='ingredient.name')
     measurement_unit = CharField(source='ingredient.measurement_unit')
 
-    class Meta:
-        model = RecipesIngredients
-        fields = (
-            'id',
-            'name',
-            'measurement_unit',
-            'amount')
-
     # ToDo: выглядит громоздко, исправить на read_only_fields, протестировать
     def get_fields(self):
         """Переопределяет поля сериализатора: устанавливает для всех
@@ -296,6 +288,14 @@ class RecipesIngredientsSerializer(ModelSerializer):
         for field in fields.values():
             field.read_only = True
         return fields
+
+    class Meta:
+        model = RecipesIngredients
+        fields = (
+            'id',
+            'name',
+            'measurement_unit',
+            'amount')
 
 
 # ToDo: попробовать убрать сериализатор.
@@ -311,14 +311,6 @@ class RecipesIngredientsCreateSerializer(ModelSerializer):
     measurement_unit = SerializerMethodField(read_only=True)
     name = SerializerMethodField(read_only=True)
 
-    class Meta():
-        model = RecipesIngredients
-        fields = (
-            'id',
-            'name',
-            'measurement_unit',
-            'amount')
-
     def get_measurement_unit(self, obj):
         """Получает значение поля "measurement_unit" модели "ingredients"."""
         return obj.ingredient.measurement_unit
@@ -326,6 +318,14 @@ class RecipesIngredientsCreateSerializer(ModelSerializer):
     def get_name(self, obj):
         """Получает значение поля "name" модели "ingredients"."""
         return obj.ingredient.name
+
+    class Meta():
+        model = RecipesIngredients
+        fields = (
+            'id',
+            'name',
+            'measurement_unit',
+            'amount')
 
 
 class RecipesSerializer(ModelSerializer):
@@ -335,20 +335,6 @@ class RecipesSerializer(ModelSerializer):
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
     image = Base64ImageField()
-
-    class Meta:
-        model = Recipes
-        fields = (
-            'id',
-            'tags',
-            'author',
-            'ingredients',
-            'is_favorited',
-            'is_in_shopping_cart',
-            'name',
-            'image',
-            'text',
-            'cooking_time')
 
     @transaction.atomic
     def create(self, validated_data):
@@ -466,6 +452,20 @@ class RecipesSerializer(ModelSerializer):
             self._validate_image(image=image)
         return data
 
+    class Meta:
+        model = Recipes
+        fields = (
+            'id',
+            'tags',
+            'author',
+            'ingredients',
+            'is_favorited',
+            'is_in_shopping_cart',
+            'name',
+            'image',
+            'text',
+            'cooking_time')
+
     def _get_is_check(self, obj_queryset):
         """Вспомогательная функция:
             - проверяет авторизован ли пользователь;
@@ -555,12 +555,6 @@ class RecipesFavoritesSerializer(ModelSerializer):
     """Создает сериализатор для модели "Recipes" в случае, если происходит
     добавление рецепта в избранное или удаление оттуда."""
 
-    class Meta:
-        model = RecipesFavorites
-        fields = (
-            'user',
-            'recipe')
-
     def validate(self, data):
         """Производит валидацию данных:
             - DELETE: проверяет, что пользователь "user" добавил рецепт
@@ -615,15 +609,15 @@ class RecipesFavoritesSerializer(ModelSerializer):
         recipe_favorite.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-class ShoppingCartsSerializer(ModelSerializer):
-    """Создает сериализатор для модели "ShoppingCarts"."""
-
     class Meta:
-        model = ShoppingCarts
+        model = RecipesFavorites
         fields = (
             'user',
             'recipe')
+
+
+class ShoppingCartsSerializer(ModelSerializer):
+    """Создает сериализатор для модели "ShoppingCarts"."""
 
     def validate(self, data):
         """Производит валидацию данных:
@@ -646,15 +640,15 @@ class ShoppingCartsSerializer(ModelSerializer):
                 'Ошибка добавления. Рецепт уже находится в корзине.')
         return data
 
+    class Meta:
+        model = ShoppingCarts
+        fields = (
+            'user',
+            'recipe')
+
 
 class SubscriptionsSerializer(ModelSerializer):
     """Создает сериализатор для модели "Subscriptions"."""
-
-    class Meta:
-        model = Subscriptions
-        fields = (
-            'subscriber',
-            'subscription_to')
 
     def validate(self, data):
         """Производит валидацию данных:
@@ -687,6 +681,12 @@ class SubscriptionsSerializer(ModelSerializer):
                     "Вы уже подписаны на пользователя "
                     f"{subscription_to.username}.")
         return data
+
+    class Meta:
+        model = Subscriptions
+        fields = (
+            'subscriber',
+            'subscription_to')
 
 
 class TagsSerializer(ModelSerializer):
