@@ -19,9 +19,10 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db.models import (
     CASCADE, SET_NULL,
+    Model,
     CharField, FloatField, ForeignKey, ImageField, IntegerField,
-    ManyToManyField, SlugField, TextField, UniqueConstraint,
-    Model)
+    ManyToManyField, PositiveSmallIntegerField, SlugField, TextField,
+    UniqueConstraint)
 
 INGREDIENTS_NAME_MAX_LENGTH: int = 48
 INGREDIENTS_UNIT_MAX_LENGTH: int = 48
@@ -222,7 +223,7 @@ class Recipes(Model):
         related_name='recipe_author',
         to=User,
         verbose_name='Автор')
-    cooking_time = IntegerField(
+    cooking_time = PositiveSmallIntegerField(
         validators=[
             MinValueValidator(
                 limit_value=1,
