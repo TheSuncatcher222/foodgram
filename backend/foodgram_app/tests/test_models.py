@@ -96,7 +96,7 @@ def create_tag_obj(num: int, unique_color: str = 'NoData') -> Tags:
         color: str = unique_color
     return Tags.objects.create(
         color=color,
-        name=f'test_tag_name_{num}',
+        name='Тег'*num,
         slug=f'test_tag_slug_{num}')
 
 
@@ -214,15 +214,12 @@ class TestIngredientsModel():
         assert Ingredients.objects.all().count() == 0
         with pytest.raises(ValidationError) as err:
             Ingredients.objects.create(
-                # 'NoneType' object has no attribute 'lower'
-                # name=None,
-                name='test_name',
+                name=None,
                 measurement_unit=None)
         assert str(err.value) == (
-            # "{'name': ['Это поле не может иметь значение NULL.'], "
-            # "'measurement_unit':
-            # ['Это поле не может иметь значение NULL.']}")
-            "{'measurement_unit': ['Это поле не может иметь значение NULL.']}")
+            "{'name': ['Это поле не может иметь значение NULL.'], "
+            "'measurement_unit': "
+            "['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
         return
 
@@ -259,9 +256,9 @@ class TestTagsModel():
     def test_valid_create(self) -> None:
         """Тестирует возможность создания объекта с валидными данными."""
         assert Tags.objects.all().count() == 0
-        tag = create_tag_obj(num=1, unique_color='#000')
+        tag = create_tag_obj(num=1, unique_color='#000000')
         assert Tags.objects.all().count() == 1
-        assert tag.name == 'test_tag_name_1'
+        assert tag.name == 'Тег'
         assert tag.color == '#000000'
         assert tag.slug == 'test_tag_slug_1'
         return
@@ -289,8 +286,9 @@ class TestTagsModel():
     @pytest.mark.parametrize(
         'invalid_name, error_message',
         [(f'{"a"*201}',
-          "{'name': ['Убедитесь, что это значение содержит не более 200 "
-          "символов (сейчас 201).']}"),
+          "{'name': ['Введите корректное название тега (одно слово с "
+          "заглавной буквы!', 'Убедитесь, что это значение содержит не "
+          "более 200 символов (сейчас 201).']}"),
          ('',
           "{'name': ['Это поле не может быть пустым.']}")])
     def test_invalid_name(self, invalid_name, error_message) -> None:
@@ -298,7 +296,7 @@ class TestTagsModel():
         assert Tags.objects.all().count() == 0
         with pytest.raises(ValidationError) as err:
             Tags.objects.create(
-                color='#000',
+                color='#000000',
                 name=invalid_name,
                 slug='slug')
         assert str(err.value) == error_message
@@ -310,8 +308,8 @@ class TestTagsModel():
         assert Tags.objects.all().count() == 0
         with pytest.raises(ValidationError) as err:
             Tags.objects.create(
-                color='#000',
-                name='tag',
+                color='#000000',
+                name='Тег',
                 slug=f'{"a"*201}')
         assert str(err.value) == (
             "{'slug': ['Убедитесь, что это значение содержит не более 200 "
@@ -340,22 +338,20 @@ class TestTagsModel():
         with pytest.raises(ValidationError) as err:
             Tags.objects.create(
                 color=None,
-                # 'NoneType' object has no attribute 'lower'
-                # name=None,
-                name='test_name',
+                name=None,
                 slug=None)
         assert str(err.value) == (
             "{'color': ['Это поле не может иметь значение NULL.'], "
-            # "'name': ['Это поле не может иметь значение NULL.'], "
+            "'name': ['Это поле не может иметь значение NULL.'], "
             "'slug': ['Это поле не может иметь значение NULL.']}")
         assert Ingredients.objects.all().count() == 0
         return
 
     def test_fields_unique(self) -> None:
         """Тестирует проверку уникальностей полей модели."""
-        create_tag_obj(num=1, unique_color='#000')
+        create_tag_obj(num=1, unique_color='#000000')
         with pytest.raises(ValidationError) as err:
-            create_tag_obj(num=1, unique_color='#000')
+            create_tag_obj(num=1, unique_color='#000000')
         assert str(err.value) == (
             "{'color': ['Тег с таким HEX цвет уже существует.'], "
             "'name': ['Тег с таким Название уже существует.'], "
@@ -365,8 +361,8 @@ class TestTagsModel():
     def test_meta(self) -> None:
         """Тестирует мета-данные модели и полей.
         Тестирует строковое представление модели."""
-        tag: Tags = create_tag_obj(num=1, unique_color='#000')
-        assert str(tag) == 'test_tag_name_1 (test_tag_slug_1)'
+        tag: Tags = create_tag_obj(num=1)
+        assert str(tag) == 'Тег (test_tag_slug_1)'
         assert tag._meta.ordering == ('name', )
         assert tag._meta.verbose_name == 'Тег'
         assert tag._meta.verbose_name_plural == 'Теги'
@@ -662,7 +658,7 @@ class TestRecipesTagsModel():
         """Тестирует возможность создания объекта с валидными данными."""
         test_user_1: User = create_user_obj(num=1)
         test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
-        test_tag_1: Tags = create_tag_obj(num=1, unique_color='#000')
+        test_tag_1: Tags = create_tag_obj(num=1)
         assert RecipesTags.objects.all().count() == 0
         recipe_tag = create_recipe_tag_obj(
             recipe=test_recipe_1,
@@ -676,7 +672,7 @@ class TestRecipesTagsModel():
         """Тестирует UniqueConstraint модели."""
         test_user_1: User = create_user_obj(num=1)
         test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
-        test_tag_1: Tags = create_tag_obj(num=1, unique_color='#000')
+        test_tag_1: Tags = create_tag_obj(num=1)
         assert RecipesTags.objects.all().count() == 0
         create_recipe_tag_obj(recipe=test_recipe_1, tag=test_tag_1)
         assert RecipesTags.objects.all().count() == 1
@@ -692,13 +688,13 @@ class TestRecipesTagsModel():
         Тестирует строковое представление модели."""
         test_user_1: User = create_user_obj(num=1)
         test_recipe_1: Recipes = create_recipe_obj(num=1, user=test_user_1)
-        test_tag_1: Tags = create_tag_obj(num=1, unique_color='#000')
+        test_tag_1: Tags = create_tag_obj(num=1)
         assert RecipesTags.objects.all().count() == 0
         recipe_tag = create_recipe_tag_obj(
             recipe=test_recipe_1,
             tag=test_tag_1)
         assert str(recipe_tag) == (
-            'test_recipe_name_1 - test_tag_name_1')
+            'test_recipe_name_1 - Тег')
         assert recipe_tag._meta.ordering == ('recipe', 'tag')
         assert recipe_tag._meta.verbose_name == (
             'Связь моделей "Рецепты" и "Теги"')
