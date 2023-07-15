@@ -96,7 +96,7 @@ def create_tag_obj(num: int, unique_color: str = 'NoData') -> Tags:
         color: str = unique_color
     return Tags.objects.create(
         color=color,
-        name='Тег'*num,
+        name=f"Те{'г'*num}",
         slug=f'test_tag_slug_{num}')
 
 
