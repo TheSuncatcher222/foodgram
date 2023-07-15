@@ -124,13 +124,6 @@ def create_user_obj_with_hash(num: int) -> User:
         password=f'test_user_password_{num}')
 
 
-@pytest.fixture(autouse=True)
-def test_override_media_root(settings) -> None:
-    """Фикстура, перезаписывающая путь папки "MEDIA_ROOT"."""
-    settings.MEDIA_ROOT = settings.MEDIA_ROOT / IMAGE_TEST_FOLDER
-    return
-
-
 @pytest.mark.django_db
 class TestIngredientsModel():
     """Производит тест модели "Ingredients"."""
