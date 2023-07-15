@@ -100,13 +100,13 @@ class Ingredients(Model):
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        self.name = self.name.lower()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f'{self.name} ({self.measurement_unit})'
-
-    def save(self, *args, **kwargs):
-        self.name = self.name.lower()
-        self.full_clean()
-        super().save(*args, **kwargs)
 
 
 class Tags(Model):
