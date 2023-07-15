@@ -962,7 +962,7 @@ class TestRecipesViewSet():
             'id': 3,
             'tags': [
                 {'id': 3,
-                 'name': 'test_tag_name_3',
+                 'name': 'Теггг',
                  'color': '#000003',
                  'slug': 'test_tag_slug_3'}],
             'author': {
@@ -1060,7 +1060,7 @@ class TestRecipesViewSet():
             'id': 1,
             'tags': [
                 {'id': 1,
-                 'name': 'test_tag_name_1',
+                 'name': 'Тег',
                  'color': '#000001',
                  'slug': 'test_tag_slug_1'}],
             'author': {
@@ -1292,7 +1292,7 @@ class TestTagsViewSet():
 
     FIRST_TAG_EXP: dict = {
         'id': 1,
-        'name': 'test_tag_name_1',
+        'name': 'Тег',
         'color': '#000001',
         'slug': 'test_tag_slug_1'}
 
