@@ -80,7 +80,7 @@ class TestEndpointAvailability():
             - /api/v1/tags/
             - /api/v1/tags/{pk}/
         """
-        create_tag_obj(num=1, unique_color='#000')
+        create_tag_obj(num=1)
         response = self.client().get(f'/api/v1/tags/{url}')
         assert response.status_code not in URL_UNAVALIABLE_STATUSES
         return
