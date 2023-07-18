@@ -23,3 +23,11 @@ def delete_recipe_ingredients(sender, instance, *args, **kwargs) -> None:
             pass
     recipes_del.delete()
     return
+
+
+@receiver(signal=pre_delete, sender=Tags)
+def delete_recipe_tags(sender, instance, *args, **kwargs) -> None:
+    """При удалении объекта модели Tags также удаляет связанные объекты
+    в модели RecipesTags."""
+    RecipesTags.objects.filter(tag=instance).delete()
+    return
