@@ -695,7 +695,7 @@ class TestRecipesTagsModel():
             'Связи моделей "Рецепты" и "Теги"')
         recipe = recipe_tag._meta.get_field('recipe')
         assert recipe.null
-        assert recipe.remote_field.on_delete == SET_NULL
+        assert recipe.remote_field.on_delete == CASCADE
         assert recipe.remote_field.related_name == 'recipe_tag'
         assert recipe.verbose_name == 'Рецепт'
         tag = recipe_tag._meta.get_field('tag')

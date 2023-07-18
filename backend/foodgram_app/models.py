@@ -379,7 +379,7 @@ class RecipesTags(Model):
     """
     recipe = ForeignKey(
         null=True,
-        on_delete=SET_NULL,
+        on_delete=CASCADE,
         related_name='recipe_tag',
         to=Recipes,
         verbose_name='Рецепт')
