@@ -13,6 +13,7 @@
 
 Создает список используемых в проекте единиц измерения ингредиентов: "UNITS".
 """
+import os
 
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, RegexValidator
@@ -244,6 +245,13 @@ class Recipes(Model):
 
     def __str__(self):
         return f'{self.name} ({self.cooking_time} мин.)'
+
+    def delete(self, *args, **kwargs):
+        """Обновляет метод delete модели: добавляет удаление медиа-файла."""
+        if self.image and os.path.exists(self.image.path):
+            os.remove(self.image.path)
+        super().delete(*args, **kwargs)
+        return
 
     def save(self, *args, **kwargs):
         self.full_clean()
