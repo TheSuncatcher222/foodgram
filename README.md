@@ -48,7 +48,7 @@ Foodgram разработан с использованием следующих
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Django](https://img.shields.io/badge/django-%23092E20.svg?style=for-the-badge&logo=django&logoColor=white) ![DjangoREST](https://img.shields.io/badge/DJANGO-REST-ff1709?style=for-the-badge&logo=django&logoColor=white&color=ff1709&labelColor=gray) ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens) ![Gunicorn](https://img.shields.io/badge/gunicorn-%298729.svg?style=for-the-badge&logo=gunicorn&logoColor=white) ![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white) ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white) ![Nginx](https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white) ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white) ![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E) ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 
 ER диаграмма базы данных:
-![er_foodgram](https://github.com/Altair21817/foodgram/assets/36377190/8607fa49-b309-4ec6-a448-7ba261e37cc5)
+![er_foodgram](https://github.com/TheSuncatcher222/foodgram/assets/36377190/8607fa49-b309-4ec6-a448-7ba261e37cc5)
 
 ___
 
@@ -290,9 +290,9 @@ ___
 MIT 
 **Free Software, Hell Yeah!**
 
-Created by [Altair21817]
+Created by [TheSuncatcher222]
 
-[Altair21817]: <https://github.com/altair21817/>
+[TheSuncatcher222]: <https://github.com/TheSuncatcher222/>
 
 [Docker]: <https://www.docker.com/>
 [Django]: <https://www.djangoproject.com/>
