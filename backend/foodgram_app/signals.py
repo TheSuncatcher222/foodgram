@@ -10,7 +10,7 @@ from .models import Ingredients, Recipes, RecipesIngredients, RecipesTags, Tags
 def delete_recipe_ingredients(sender, instance, *args, **kwargs) -> None:
     """При удалении объекта модели Ingredients также удаляет те объекты модели
     Recipes, с которыми существует связь через RecipesIngredients.
-    Дополнительно уда"""
+    Дополнительно удаляет изображение рецепта."""
     recipes_del_ids: list[int] = RecipesIngredients.objects.filter(
         ingredient=instance).values_list('recipe_id', flat=True)
     recipes_del: list[Recipes] = Recipes.objects.filter(id__in=recipes_del_ids)
