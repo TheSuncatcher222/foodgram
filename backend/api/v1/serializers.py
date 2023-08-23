@@ -344,7 +344,7 @@ class RecipesSerializer(ModelSerializer):
             raise APICustomException()
         user: User = request.user
         """Не нужно проверять наличие полей в validated_data и context
-        так как это уде проверяется в методе validate."""
+        так как это уже проверяется в методе validate."""
         ingredients_data: list[dict] = validated_data.pop('recipe_ingredient')
         current_recipe: Recipes = Recipes.objects.create(
             author=user, **validated_data)
