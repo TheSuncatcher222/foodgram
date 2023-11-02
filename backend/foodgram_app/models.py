@@ -24,7 +24,7 @@ from django.db.models import (
     ManyToManyField, PositiveSmallIntegerField, SlugField, TextField,
     UniqueConstraint)
 
-INGREDIENTS_NAME_MAX_LENGTH: int = 48
+INGREDIENTS_NAME_MAX_LENGTH: int = 99
 INGREDIENTS_UNIT_MAX_LENGTH: int = 48
 TAGS_COLOR_MAX_LEN: int = 7
 TAGS_NAME_MAX_LEN: int = 200
@@ -36,12 +36,14 @@ UNITS: list[tuple[str]] = [
     ('банка', 'банка'),
     ('батон', 'батон'),
     ('бутылка', 'бутылка'),
+    ('веточка', 'веточка'),
     ('г', 'г'),
     ('горсть', 'горсть'),
     ('долька', 'долька'),
     ('звездочка', 'звездочка'),
     ('зубчик', 'зубчик'),
     ('капля', 'капля'),
+    ('кг', 'кг'),
     ('кусок', 'кусок'),
     ('л', 'л'),
     ('лист', 'лист'),
