@@ -2,37 +2,41 @@ version: '2.17.3'
 
 volumes:
 
-  db_volume:
-  media_volume:
-  static_volume:
+  foodgram_database_volume:
+  foodgram_media_volume:
+  foodgram_static_volume:
 
 services:
 
-  postgres_db:
-    image: postgres:13.10
+  foodgram_database:
+    image: postgres:13.10-alpine
     env_file: .env
     volumes:
-      - db_volume:/var/lib/postgresql/data/
+      - foodgram_database_volume:/var/lib/postgresql/data/
 
-  backend:
+  foodgram_backend:
     depends_on:
-      - postgres_db
-    image: altair21817/foodgram_backend
+      - foodgram_database
+    image: thesuncatcher222/foodgram_backend:latest
     env_file: .env
     volumes:
-      - media_volume:/foodgram/foodgram_app/media
-      - static_volume:/foodgram/foodgram_app/collected_static
+      - foodgram_media_volume:/foodgram/foodgram_app/media
+      - foodgram_static_volume:/foodgram/foodgram_app/collected_static
 
-  frontend:
-    image: altair21817/foodgram_frontend
+  foodgram_frontend:
+    image: thesuncatcher222/foodgram_frontend:latest
+    env_file: .env
     volumes:
-      - static_volume:/static
+      - foodgram_static_volume:/static
     command: cp -r /app/build/. /static/
 
-  nginx:
-    image: altair21817/foodgram_nginx
+  foodgram_gateway:
+    depends_on:
+      - foodgram_backend
+      - foodgram_frontend
+    image: thesuncatcher222/foodgram_gateway:latest
     ports:
-      - 8000:80
+      - 8002:8000
     volumes:
-      - media_volume:/home/foodgram/media
-      - static_volume:/home/foodgram/static
+      - foodgram_media_volume:/home/foodgram/media
+      - foodgram_static_volume:/home/foodgram/static
