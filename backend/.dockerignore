@@ -38,3 +38,6 @@ logs/
 # Secrets
 secrets.ini
 secrets.yaml
+
+*/migrations/*
+!*/migrations/__init__.py
