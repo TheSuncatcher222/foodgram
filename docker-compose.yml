@@ -25,7 +25,6 @@ services:
 
   foodgram_frontend:
     image: thesuncatcher222/foodgram_frontend:latest
-    env_file: .env
     volumes:
       - foodgram_static_volume:/static
     command: cp -r /app/build/. /static/
