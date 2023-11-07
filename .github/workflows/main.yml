@@ -69,12 +69,12 @@ jobs:
           context: ./frontend/
           push: True
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/foodgram_frontend:latest
-      - name: Push nginx image to the Dockerhub
+      - name: Push gateway image to the Dockerhub
         uses: docker/build-push-action@v4
         with:
-          context: ./nginx/
+          context: ./gateway/
           push: True
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/foodgram_nginx:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/foodgram_gateway:latest
 
   deploy_on_server:
     name: Deploy Foodgram on server
@@ -100,13 +100,14 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd foodgram
-            sudo docker compose pull
+            cd /home/foodgram
             sudo docker compose down
             sudo docker compose up -d
-            sudo docker compose exec backend python manage.py makemigrations foodgram_app
-            sudo docker compose exec backend python manage.py migrate
-            yes | sudo docker compose exec backend python manage.py collectstatic
+            sudo docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/foodgram_backend
+            sudo docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/foodgram_frontend
+            sudo docker image rm ${{ secrets.DOCKERHUB_USERNAME }}/foodgram_gateway
+            sudo docker volume rm foodgram_foodgram_static_volume
+            sudo docker compose up -d --build
             sudo systemctl restart nginx
 
   send_message_telegram:
